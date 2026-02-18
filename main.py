@@ -9,13 +9,16 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from states import admin_data, find_movie, find_movie_admin, block_user
 from chanal import majburiy_follow
 from aiogram.types import ReplyKeyboardRemove
+from aiogram.client.session.aiohttp import AiohttpSession
 API_TOKEN = "8405959828:AAGf0Mo53xL34D2g-DwG1UXbSdRHe7nnfFY"
 ADMINS = [8584543342,]
 logging.basicConfig(level=logging.INFO)
 
-bot = Bot(token=API_TOKEN)
+bot = Bot(token=API_TOKEN, session=session)
 dp = Dispatcher()
 dp.message.middleware(majburiy_follow())
+PROXY_URL = 'http://proxy.server:3128'
+session = AiohttpSession(proxy=PROXY_URL)
 
 @dp.message(Command('start'))
 async def start_hendler(message: types.Message):
