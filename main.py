@@ -288,7 +288,6 @@ async def confirm_block_handler(call: types.CallbackQuery, state: FSMContext):
     
     
 async def main():
-    await is_not_ban(8584543342)
     await creat_table()
     await dp.start_polling(bot)
 
