@@ -5,7 +5,7 @@ def admin_menu():
         keyboard=[
             [KeyboardButton(text='🔄 Kino yangilash'), KeyboardButton(text='➕ Kino qo\'shish'), KeyboardButton(text='🗑 Kino o\'chirish')],
             [KeyboardButton(text='📊 Statistika'), KeyboardButton(text='🎬 Reklama tarqatish'), KeyboardButton(text='🚫 Foydalanuvchilarni bloklash')],
-            [KeyboardButton(text='🎥 Kinolarni ko\'rish'), KeyboardButton(text='🔓 Foydalanuvchilarni blokdan chiqarish')]
+            [KeyboardButton(text='🎥 Kinolarni ko\'rish'), KeyboardButton(text='🔓 Foydalanuvchilarni blokdan chiqarish'), KeyboardButton(text='📂 Foydalanuvchilarni ko\'rish')]
         ],
         resize_keyboard=True
     )
