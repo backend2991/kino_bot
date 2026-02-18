@@ -14,13 +14,9 @@ from aiogram.client.session.aiohttp import AiohttpSession
 
 TOKEN = "8405959828:AAGf0Mo53xL34D2g-DwG1UXbSdRHe7nnfFY"
 ADMINS = [8584543342,]
-from aiogram.client.session.aiohttp import AiohttpSession
 
 
-PROXY_URL = 'http://proxy.server:3128'
-session = AiohttpSession(proxy=PROXY_URL)
-
-bot = Bot(token=TOKEN, session=session)
+bot = Bot(token=TOKEN)
 dp = Dispatcher()
 dp.message.middleware(majburiy_follow())
 
