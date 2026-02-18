@@ -38,7 +38,6 @@ async def start_hendler(message: types.Message):
 
         )
             
-print("salom")
 
 @dp.message(F.text == '➕ Kino qo\'shish')
 async def creat_films_handler(message: types.Message, state  : FSMContext):
