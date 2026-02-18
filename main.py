@@ -257,45 +257,39 @@ async def confirm_block_handler(call: types.CallbackQuery, state: FSMContext):
 async def start_block_handler(message: types.Message, state: FSMContext):
     if message.from_user.id in ADMINS:
         await message.answer("✏ Foydalanuvchining id-sini kiriting")
-        
-        await state.set_state(unblock_user.blcok_user_unblock) 
+        await state.set_state(unblock_user.blcok_user_unblock) # To'g'ri state
     else:
         await message.answer("❌ Bu amal faqat adminlar uchun")
 
-@dp.message(block_user.blcok_user_)
+@dp.message(unblock_user.blcok_user_unblock) # State mos kelishi kerak
 async def get_user_id_handler(message: types.Message, state: FSMContext):
     if message.from_user.id in ADMINS:
-        
         await state.update_data(user_id=message.text) 
-        
-        
         await state.set_state(unblock_user.confirm_user_unblock)
         
-        await message.answer(f"💬 ID: {message.text}\nBu foydalanuvchini blokdan chiqarishga rozimisiz?", 
-                             reply_markup=confirm_yes_no())
+        await message.answer(
+            f"💬 ID: {message.text}\nBu foydalanuvchini blokdan chiqarishga rozimisiz?", 
+            reply_markup=confirm_yes_no()
+        )
     else:
         await message.answer("❌ Bu amal faqat adminlar uchun")
 
 @dp.callback_query(unblock_user.confirm_user_unblock)
 async def confirm_block_handler(call: types.CallbackQuery, state: FSMContext):
     await call.answer()
-    
     data_state = await state.get_data()
     user_id = data_state.get('user_id') 
 
     if call.data == 'yes':
-        
         user_exists = await find_user(user_id) 
-        
         if user_exists:
-            await is_not_ban(user_id) 
+            await is_not_ban(user_id) # Endi bazada 0 (Active) bo'ladi
             await call.message.edit_text(f"✅ Foydalanuvchi (ID: {user_id}) blokdan chiqarildi")
         else:
             await call.message.edit_text(f"❌ ID: {user_id} bazadan topilmadi")
-        
         await state.clear()
     else:
-        await call.message.edit_text("❌ Bloklash bekor qilindi")
+        await call.message.edit_text("❌ Blokdan chiqarish bekor qilindi")
         await state.clear()
 
 

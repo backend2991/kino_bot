@@ -77,9 +77,7 @@ async def is_ban(user_id):
        
 async def is_not_ban(user_id):
     async with aiosqlite.connect('movies.db') as conn:
-        curr = await conn.cursor() 
-        query = "UPDATE users SET is_bann='false' WHERE user_id=?"
-        await curr.execute(query, (user_id,))
+        await conn.execute("UPDATE users SET is_bann=false WHERE user_id=?", (user_id,))
         await conn.commit()
 
 
