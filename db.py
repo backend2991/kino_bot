@@ -95,6 +95,6 @@ async def check_user_ban(user_id):
         async with db.execute("SELECT is_bann FROM users WHERE user_id = ?", (user_id,)) as cursor:
             row = await cursor.fetchone()
             if row:
-                return row[0] == 0 
-            return True 
+                return row[0] == 'false' 
+            return True
         

@@ -31,7 +31,7 @@ dp.message.middleware(majburiy_follow())
 
 @dp.message(Command('start'))
 async def start_hendler(message: types.Message):
-    is_ban =await  check_user_ban(message.from_user.id)
+    is_ban = await check_user_ban(message.from_user.id)
     if is_ban:
         if message.from_user.id in ADMINS:
             await message.answer(f"Xush kelibsiz {message.from_user.full_name}", reply_markup=admin_menu())
