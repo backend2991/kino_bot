@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import sys
 from aiogram import Bot, Dispatcher, types,F
 from aiogram.filters import Command
 from db import creat_table, insert_movie, insert_users, get_movie_by_code, find_user, is_ban, check_user_ban, is_not_ban
@@ -9,8 +10,12 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from states import admin_data, find_movie, find_movie_admin, block_user, unblock_user
 from chanal import majburiy_follow
 from aiogram.types import ReplyKeyboardRemove
-from aiogram.client.session.aiohttp import AiohttpSession
-
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+logger = logging.getLogger(__name__)
 
 TOKEN = "8405959828:AAGf0Mo53xL34D2g-DwG1UXbSdRHe7nnfFY"
 ADMINS = [8584543342,]
