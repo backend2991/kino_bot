@@ -14,10 +14,13 @@ API_TOKEN = "8405959828:AAGf0Mo53xL34D2g-DwG1UXbSdRHe7nnfFY"
 ADMINS = [8584543342,]
 logging.basicConfig(level=logging.INFO)
 
+PROXY_URL = 'http://proxy.server:3128'
+session = AiohttpSession(proxy=PROXY_URL)
+
 bot = Bot(token=API_TOKEN, session=session)
 dp = Dispatcher()
 dp.message.middleware(majburiy_follow())
-PROXY_URL = 'http://proxy.server:3128'
+
 session = AiohttpSession(proxy=PROXY_URL)
 
 @dp.message(Command('start'))
