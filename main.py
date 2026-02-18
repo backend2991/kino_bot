@@ -10,6 +10,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from states import admin_data, find_movie, find_movie_admin, block_user, unblock_user
 from chanal import majburiy_follow
 from aiogram.types import ReplyKeyboardRemove
+from pdf import generate_users_pdf
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
@@ -294,8 +295,13 @@ async def confirm_block_handler(call: types.CallbackQuery, state: FSMContext):
     else:
         await call.message.edit_text("❌ Bloklash bekor qilindi")
         await state.clear()
-    
-    
+
+
+@dp.message(F.text == '📂 Foydalanuvchilarni ko\'rish')
+async def ghg(message: types.Message):
+    await message.answer(generate_users_pdf())
+
+
 async def main():
     await creat_table()
     await dp.start_polling(bot)

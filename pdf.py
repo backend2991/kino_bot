@@ -4,24 +4,19 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 
 async def generate_users_pdf(db_path="movies.db", output_pdf="foydalanuvchilar.pdf"):
-    # 1. movies.db fayliga ulanish va ma'lumotlarni olish
     if not os.path.exists(db_path):
-        return None  # Agar fayl topilmasa, xato bermasligi uchun
+        return None  
 
     async with aiosqlite.connect(db_path) as db:
-        # Siz aytgan ustunlar bo'yicha SELECT
         async with db.execute("SELECT id, user_id, full_name, is_bann FROM users") as cursor:
             rows = await cursor.fetchall()
 
-    # 2. PDF yaratish jarayoni
     c = canvas.Canvas(output_pdf, pagesize=A4)
     width, height = A4
     
-    # Sarlavha yozish
     c.setFont("Helvetica-Bold", 16)
     c.drawString(50, height - 50, "Kino Bot Foydalanuvchilari")
     
-    # Jadval sarlavhalari
     c.setFont("Helvetica-Bold", 10)
     y = height - 80
     c.drawString(40, y, "ID")
@@ -30,7 +25,6 @@ async def generate_users_pdf(db_path="movies.db", output_pdf="foydalanuvchilar.p
     c.drawString(450, y, "Holati")
     c.line(40, y - 5, 550, y - 5)
 
-    # 3. Ma'lumotlarni PDF ga qatorlar bo'yicha yozish
     c.setFont("Helvetica", 9)
     y -= 20
     
@@ -40,23 +34,20 @@ async def generate_users_pdf(db_path="movies.db", output_pdf="foydalanuvchilar.p
         c.drawString(40, y, str(u_id))
         c.drawString(70, y, str(tg_id))
         
-        # Full name (bo'sh bo'lsa "Noma'lum" deb yozadi)
         name_text = str(f_name)[:45] if f_name else "Ism kiritilmagan"
         c.drawString(170, y, name_text)
         
-        # Ban holatini tekshirish
         status = "Banned" if is_bann == 1 else "Active"
         if status == "Banned":
-            c.setFillColorRGB(0.8, 0, 0) # Qizil
+            c.setFillColorRGB(0.8, 0, 0) 
         else:
-            c.setFillColorRGB(0, 0.5, 0) # Yashil
+            c.setFillColorRGB(0, 0.5, 0) 
             
         c.drawString(450, y, status)
-        c.setFillColorRGB(0, 0, 0) # Qoraga qaytarish
+        c.setFillColorRGB(0, 0, 0) 
         
         y -= 20
         
-        # Yangi sahifa kerakligini tekshirish
         if y < 50:
             c.showPage()
             y = height - 50
