@@ -299,13 +299,17 @@ async def confirm_block_handler(call: types.CallbackQuery, state: FSMContext):
         await state.clear()
 
 
-@dp.message(F.text == '📂 Foydalanuvchilarni ko\'view')
+@dp.message(F.text == "📂 Foydalanuvchilarni ko'rish") 
 async def ghg(message: types.Message):
-    status_msg = await message.answer("⏳ PDF tayyorlanmoqda, iltimos kuting...")
+    status_msg = await message.answer("⏳ PDF tayyorlanmoqda, iltimos kiting...")
     
     try:
         pdf_path = await generate_users_pdf() 
         
+        if pdf_path is None:
+            await message.answer("❌ Ma'lumotlar bazasi topilmadi!")
+            return
+
         document = FSInputFile(pdf_path)
         await message.answer_document(
             document, 
@@ -318,7 +322,7 @@ async def ghg(message: types.Message):
             os.remove(pdf_path)
             
     except Exception as e:
-        await message.answer(f"❌ Xatolik yuz berdi: {e}")
+        await message.answer(f"❌ Xatolik yuz berdi: {str(e)}")
 
 
 async def main():
