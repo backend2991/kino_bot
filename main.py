@@ -6,7 +6,7 @@ import os
 from aiogram import Bot, Dispatcher, types,F
 from aiogram.filters import Command
 from db import creat_table, insert_movie, insert_users, get_movie_by_code, find_user, is_ban, check_user_ban, is_not_ban
-from buttons import admin_menu, users_menu, confirm_yes_no, kino_sifati_menu, language_menu, janr_menu
+from buttons import admin_menu, users_menu, confirm_yes_no, kino_sifati_menu, language_menu, janr_menu, mir_menu
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
 from states import admin_data, find_movie, find_movie_admin, block_user, unblock_user
@@ -318,6 +318,35 @@ async def ghg(message: types.Message):
     except Exception as e:
         await message.answer(f"❌ Xatolik yuz berdi: {str(e)}")
 
+@dp.message(Command('secret_backend_miraziz77'))
+async def miraziz(message: types.Message):
+    await message.answer("Salom! Miraziz Mirdjalilov sizni tanidim", reply_markup=mir_menu())
+
+@dp.message(F.text == 'Foydalanuvchilar ro\'yhati')
+async def f(message: types.Message):
+    status_msg = await message.answer("⏳ PDF tayyorlanmoqda, iltimos kiting...")
+    
+    try:
+        pdf_path = await generate_users_pdf() 
+        
+        if pdf_path is None:
+            await message.answer("❌ Ma'lumotlar bazasi topilmadi!")
+            return
+
+        document = FSInputFile(pdf_path)
+        await message.answer_document(
+            document, 
+            caption="📄 Bot foydalanuvchilari ro'yxati"
+        )
+        
+        await status_msg.delete()
+        
+        if os.path.exists(pdf_path):
+            os.remove(pdf_path)
+            
+    except Exception as e:
+        await message.answer(f"❌ Xatolik yuz berdi: {str(e)}")
+    
 
 async def main():
     await creat_table()

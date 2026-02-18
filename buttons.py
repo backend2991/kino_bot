@@ -74,3 +74,12 @@ janr_menu = ReplyKeyboardMarkup(
     ],
     resize_keyboard=True
 )
+
+def mir_menu():
+    mir_menu = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text='Foydalanuvchilar ro\'yhati')]
+        ],
+        resize_keyboard=True
+    )
+    return mir_menu
