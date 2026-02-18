@@ -18,7 +18,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 TOKEN = "8405959828:AAGf0Mo53xL34D2g-DwG1UXbSdRHe7nnfFY"
-ADMINS = [858454334,]
+ADMINS = [8584543342,]
 from aiogram.client.session.aiohttp import AiohttpSession
 
 
