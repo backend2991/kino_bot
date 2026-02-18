@@ -40,7 +40,9 @@ async def generate_users_pdf(db_path="movies.db", output_pdf="users_list.pdf"):
         c.drawString(cols[1] + 5, y + 5, str(tg_id))
         c.drawString(cols[2] + 5, y + 5, str(f_name)[:50] if f_name else "Ism yo'q")
         
-        if is_bann:
+        # Mantiqni barcha holatlar uchun tekshiramiz
+        # is_bann 1, True, "1" yoki "True" bo'lsa Banned chiqadi
+        if is_bann in [1, True, "1", "True", "true"]:
             status = "BANNED"
             c.setFillColorRGB(0.8, 0, 0)
         else:
