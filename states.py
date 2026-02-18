@@ -20,3 +20,7 @@ class find_movie_admin(StatesGroup):
 class block_user(StatesGroup):
     blcok_user_ = State() 
     confirm_user = State()
+
+class unblock_user(StatesGroup):
+    blcok_user_unblock = State() 
+    confirm_user_unblock = State()

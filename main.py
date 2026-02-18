@@ -2,26 +2,22 @@ import asyncio
 import logging
 from aiogram import Bot, Dispatcher, types,F
 from aiogram.filters import Command
-from db import creat_table, insert_movie, insert_users, get_movie_by_code, find_user, is_ban, check_user_ban
+from db import creat_table, insert_movie, insert_users, get_movie_by_code, find_user, is_ban, check_user_ban, is_not_ban
 from buttons import admin_menu, users_menu, confirm_yes_no, kino_sifati_menu, language_menu, janr_menu
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
-from states import admin_data, find_movie, find_movie_admin, block_user
+from states import admin_data, find_movie, find_movie_admin, block_user, unblock_user
 from chanal import majburiy_follow
 from aiogram.types import ReplyKeyboardRemove
 from aiogram.client.session.aiohttp import AiohttpSession
+
+
 API_TOKEN = "8405959828:AAGf0Mo53xL34D2g-DwG1UXbSdRHe7nnfFY"
 ADMINS = [8584543342,]
-logging.basicConfig(level=logging.INFO)
 
-PROXY_URL = 'http://proxy.server:3128'
-session = AiohttpSession(proxy=PROXY_URL)
-
-bot = Bot(token=API_TOKEN, session=session)
+bot = Bot(token=API_TOKEN) 
 dp = Dispatcher()
 dp.message.middleware(majburiy_follow())
-
-session = AiohttpSession(proxy=PROXY_URL)
 
 @dp.message(Command('start'))
 async def start_hendler(message: types.Message):
@@ -243,12 +239,56 @@ async def confirm_block_handler(call: types.CallbackQuery, state: FSMContext):
         await call.message.edit_text("❌ Bloklash bekor qilindi")
         await state.clear()
 
+# ============================================================
 
+@dp.message(F.text == '🔓 Foydalanuvchilarni blokdan chiqarish')
+async def start_block_handler(message: types.Message, state: FSMContext):
+    if message.from_user.id in ADMINS:
+        await message.answer("✏ Foydalanuvchining id-sini kiriting")
+        
+        await state.set_state(unblock_user.blcok_user_unblock) 
+    else:
+        await message.answer("❌ Bu amal faqat adminlar uchun")
 
+@dp.message(block_user.blcok_user_)
+async def get_user_id_handler(message: types.Message, state: FSMContext):
+    if message.from_user.id in ADMINS:
+        
+        await state.update_data(user_id=message.text) 
+        
+        
+        await state.set_state(unblock_user.confirm_user_unblock)
+        
+        await message.answer(f"💬 ID: {message.text}\nBu foydalanuvchini blokdan chiqarishga rozimisiz?", 
+                             reply_markup=confirm_yes_no())
+    else:
+        await message.answer("❌ Bu amal faqat adminlar uchun")
 
+@dp.callback_query(unblock_user.confirm_user_unblock)
+async def confirm_block_handler(call: types.CallbackQuery, state: FSMContext):
+    await call.answer()
+    
+    data_state = await state.get_data()
+    user_id = data_state.get('user_id') 
+
+    if call.data == 'yes':
+        
+        user_exists = await find_user(user_id) 
+        
+        if user_exists:
+            await is_not_ban(user_id) 
+            await call.message.edit_text(f"✅ Foydalanuvchi (ID: {user_id}) blokdan chiqarildi")
+        else:
+            await call.message.edit_text(f"❌ ID: {user_id} bazadan topilmadi")
+        
+        await state.clear()
+    else:
+        await call.message.edit_text("❌ Bloklash bekor qilindi")
+        await state.clear()
     
     
 async def main():
+    await is_not_ban(8584543342)
     await creat_table()
     await dp.start_polling(bot)
 
