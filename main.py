@@ -1,6 +1,8 @@
 import asyncio
 import logging
 import sys
+from aiogram.types import FSInputFile
+import os
 from aiogram import Bot, Dispatcher, types,F
 from aiogram.filters import Command
 from db import creat_table, insert_movie, insert_users, get_movie_by_code, find_user, is_ban, check_user_ban, is_not_ban
@@ -8,7 +10,7 @@ from buttons import admin_menu, users_menu, confirm_yes_no, kino_sifati_menu, la
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
 from states import admin_data, find_movie, find_movie_admin, block_user, unblock_user
-from chanal import majburiy_follow
+from chanal import majburiy_follow 
 from aiogram.types import ReplyKeyboardRemove
 from pdf import generate_users_pdf
 logging.basicConfig(
@@ -297,9 +299,26 @@ async def confirm_block_handler(call: types.CallbackQuery, state: FSMContext):
         await state.clear()
 
 
-@dp.message(F.text == '📂 Foydalanuvchilarni ko\'rish')
+@dp.message(F.text == '📂 Foydalanuvchilarni ko\'view')
 async def ghg(message: types.Message):
-    await message.answer(generate_users_pdf())
+    status_msg = await message.answer("⏳ PDF tayyorlanmoqda, iltimos kuting...")
+    
+    try:
+        pdf_path = await generate_users_pdf() 
+        
+        document = FSInputFile(pdf_path)
+        await message.answer_document(
+            document, 
+            caption="📄 Bot foydalanuvchilari ro'yxati"
+        )
+        
+        await status_msg.delete()
+        
+        if os.path.exists(pdf_path):
+            os.remove(pdf_path)
+            
+    except Exception as e:
+        await message.answer(f"❌ Xatolik yuz berdi: {e}")
 
 
 async def main():
