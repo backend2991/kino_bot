@@ -1,58 +1,24 @@
-from typing import Any, Awaitable, Callable, Dict, Union
-from aiogram import BaseMiddleware
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+import asyncio
+import logging
+from aiogram import Bot, Dispatcher, types, F
+from aiogram.filters import Command
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-CHANNELS = ["@it_corse", "-10023867376036"]
+def sub_markup():
+    builder = InlineKeyboardBuilder()
+    builder.row(types.InlineKeyboardButton(text="1-kanalga a'zo bo'lish", url="https://t.me/it_corse"))
+    
+    builder.row(types.InlineKeyboardButton(text="Tekshirish ✅", callback_data="sub_check"))
+    return builder.as_markup()
 
-class majburiy_follow(BaseMiddleware):
-    async def __call__(
-        self,
-        handler: Callable[[Union[Message, CallbackQuery], Dict[str, Any]], Awaitable[Any]],
-        event: Union[Message, CallbackQuery],
-        data: Dict[str, Any]
-    ) -> Any:
-        
-        user = event.from_user
-        if not user:
-            return await handler(event, data)
-
-        bot = data['bot']
-        not_joined_channels = []
-
-        for channel in CHANNELS:
-            try:
-                member = await bot.get_chat_member(chat_id=channel, user_id=user.id)
-                if member.status in ["left", "kicked"]:
-                    not_joined_channels.append(channel)
-            except Exception:
-                continue 
-
-        # 1. Agar a'zo bo'lmagan kanallar bo'lsa:
-        if not_joined_channels:
-            buttons = []
-            for i, ch in enumerate(not_joined_channels, 1):
-                url = f"https://t.me/{ch[1:]}" if ch.startswith('@') else "https://t.me/it_corse"
-                buttons.append([InlineKeyboardButton(text=f"{i}-kanalga a'zo bo'lish", url=url)])
-            
-            buttons.append([InlineKeyboardButton(text="✅ Tekshirish", callback_data="check_sub")])
-            keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
-
-            if isinstance(event, CallbackQuery):
-                await event.answer("Siz hali barcha kanallarga a'zo bo'lmadingiz!", show_alert=True)
-                return
-            
-            return await event.answer(
-                "🎬 **Botdan foydalanish uchun quyidagi kanallarga a'zo bo'ling!**", 
-                reply_markup=keyboard
-            )
-
-        # 2. Agar hamma kanalga a'zo bo'lgan bo'lsa VA "Tekshirish" tugmasini bosgan bo'lsa:
-        if isinstance(event, CallbackQuery) and event.data == "check_sub":
-            await event.message.delete()
-            await event.message.answer("Rahmat! Endi botdan foydalanishingiz mumkin.")
-            # BU YERDA handler() ni chaqirmaymiz, chunki tugma bosilganda main dagi kodlar (masalan start) ishlamasligi kerak.
-            # Foydalanuvchi shunchaki qaytadan xabar yozadi yoki start bosadi.
-            return 
-
-        # 3. Agar hamma kanalga a'zo bo'lsa, MAIN dagi kodlar ishlab ketsin:
-        return await handler(event, data)
+async def check_user_sub(user_id: int, bot: Bot):
+    CHANNELS = ["@itcorse", ] 
+    for channel in CHANNELS:
+        try:
+            member = await bot.get_chat_member(chat_id=channel, user_id=user_id)
+            if member.status in ["left", "kicked"]:
+                return False
+        except Exception as e:
+            print(f"Xatolik: {e}")
+            return False
+    return True

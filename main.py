@@ -10,7 +10,7 @@ from buttons import admin_menu, users_menu, confirm_yes_no, kino_sifati_menu, la
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
 from states import admin_data, find_movie, find_movie_admin, block_user, unblock_user
-from chanal import majburiy_follow 
+from chanal import check_user_sub, sub_markup
 from aiogram.types import ReplyKeyboardRemove
 from pdf import generate_users_pdf
 logging.basicConfig(
@@ -30,23 +30,51 @@ session = AiohttpSession(proxy=PROXY_URL)
 
 bot = Bot(token=TOKEN, session=session)
 dp = Dispatcher()
-dp.message.middleware(majburiy_follow())
 
 @dp.message(Command('start'))
-async def start_hendler(message: types.Message):
-    is_ban = await check_user_ban(message.from_user.id)
-    if is_ban:
-        if message.from_user.id in ADMINS:
-            await message.answer(f"Xush kelibsiz {message.from_user.full_name}", reply_markup=admin_menu())
-        else:
-            await message.answer(f"Xush kelibsiz {message.from_user.full_name}", reply_markup=users_menu())
-            await insert_users(
-                user_id=message.from_user.id,
-                full_name=message.from_user.full_name,
-                is_bann='false'
-            
+async def start_handler(message: types.Message, bot: Bot):
+    user_id = message.from_user.id
+    full_name = message.from_user.full_name
 
-        )
+    is_ban = await check_user_ban(user_id)
+    if not is_ban: 
+        
+        if await check_user_sub(user_id, bot):
+            if user_id in ADMINS:
+                await message.answer(f"Xush kelibsiz Admin, {full_name}", reply_markup=admin_menu())
+            else:
+                await message.answer(f"Xush kelibsiz {full_name}", reply_markup=users_menu())
+                
+                await insert_users(
+                    user_id=user_id,
+                    full_name=full_name,
+                    is_bann='false'
+                )
+        else:
+            await message.answer(
+                f"Hurmatli {full_name}, botdan foydalanish uchun kanallarga a'zo bo'ling:",
+                reply_markup=sub_markup() 
+            )
+    else:
+        # Agar foydalanuvchi ban bo'lsa
+        await message.answer("Siz botdan foydalanishdan chetlatilgansiz! ❌")
+
+# --- Tekshirish tugmasi bosilganda ---
+@dp.callback_query(F.data == "sub_check")
+async def callback_sub_check(call: types.CallbackQuery, bot: Bot):
+    user_id = call.from_user.id
+    full_name = call.from_user.full_name
+
+    if await check_user_sub(user_id, bot):
+        await call.message.delete()
+        # Obuna bo'lgandan keyin menyuni chiqarish
+        if user_id in ADMINS:
+            await call.message.answer(f"Xush kelibsiz Admin, {full_name}", reply_markup=admin_menu())
+        else:
+            await call.message.answer(f"Xush kelibsiz {full_name}", reply_markup=users_menu())
+            await insert_users(user_id=user_id, full_name=full_name, is_bann='false')
+    else:
+        await call.answer("Siz hali barcha kanallarga a'zo bo'lmagansiz! ❌", show_alert=True)
             
 
 @dp.message(F.text == '➕ Kino qo\'shish')
