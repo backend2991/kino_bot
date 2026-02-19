@@ -13,7 +13,7 @@ async def generate_users_pdf(db_path="movies.db", output_pdf="users_list.pdf"):
 
     c = canvas.Canvas(output_pdf, pagesize=A4)
     width, height = A4
-    cols = [40, 80, 180, 450, 550] # X-coordinates for columns
+    cols = [40, 80, 180, 450, 550] 
     
     def draw_headers(canvas_obj, current_y):
         canvas_obj.setFont("Helvetica-Bold", 10)
@@ -21,11 +21,9 @@ async def generate_users_pdf(db_path="movies.db", output_pdf="users_list.pdf"):
         for i, text in enumerate(headers):
             canvas_obj.drawString(cols[i] + 5, current_y + 5, text)
         
-        # Draw header box
         canvas_obj.rect(cols[0], current_y, cols[-1] - cols[0], 20)
         return current_y - 20
 
-    # Initial Header
     c.setFont("Helvetica-Bold", 16)
     c.drawCentredString(width / 2, height - 50, "Foydalanuvchilar Ro'yxati")
     
@@ -36,14 +34,12 @@ async def generate_users_pdf(db_path="movies.db", output_pdf="users_list.pdf"):
     for row in rows:
         u_id, tg_id, f_name, is_bann = row
         
-        # Text clipping for long names
         clean_name = str(f_name)[:45] if f_name else "Ism yo'q"
         
         c.drawString(cols[0] + 5, y + 5, str(u_id))
         c.drawString(cols[1] + 5, y + 5, str(tg_id))
         c.drawString(cols[2] + 5, y + 5, clean_name)
         
-        # Status logic with color
         if is_bann in [1, True, "1", "True", "true"]:
             status, color = "BANNED", (0.8, 0, 0)
         else:
@@ -51,18 +47,16 @@ async def generate_users_pdf(db_path="movies.db", output_pdf="users_list.pdf"):
             
         c.setFillColorRGB(*color)
         c.drawString(cols[3] + 5, y + 5, status)
-        c.setFillColorRGB(0, 0, 0) # Reset to black
+        c.setFillColorRGB(0, 0, 0) 
 
-        # Draw row border
         c.rect(cols[0], y, cols[-1] - cols[0], 20)
         
         y -= 20
         
-        # Page break logic
         if y < 50:
             c.showPage()
             y = height - 50
-            y = draw_headers(c, y) # Redraw headers on new page
+            y = draw_headers(c, y) 
             c.setFont("Helvetica", 9)
 
     c.save()
