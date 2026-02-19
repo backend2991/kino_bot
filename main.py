@@ -13,7 +13,8 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from states import admin_data, find_movie, find_movie_admin, block_user, unblock_user, DeleteMovieState
 from chanal import check_user_sub, sub_markup
 from aiogram.types import ReplyKeyboardRemove
-from pdf import generate_users_pdf
+from pdf_usres import generate_users_pdf
+from pdf_movies import generate_movies_pdf
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
@@ -426,6 +427,30 @@ async def cancel_del_process(call: types.CallbackQuery, state: FSMContext):
     await call.message.edit_text("❌ O'chirish jarayoni bekor qilindi.")
     await state.clear()
     await call.answer()
+
+@dp.message(F.text == "📂 Kinolarni ko'rish")
+async def send_movies_pdf_handler(message: types.Message):
+    wait_msg = await message.answer("🔄 PDF hisobot tayyorlanmoqda, iltimos kuting...")
+    
+    try:
+        file_path = await generate_movies_pdf()
+        
+        if file_path and os.path.exists(file_path):
+            document = FSInputFile(file_path)
+            await message.answer_document(
+                document, 
+                caption="🎬 Bazadagi barcha kinolar ro'yxati (PDF)"
+            )
+            await wait_msg.delete()
+            
+            if os.path.exists(file_path):
+                os.remove(file_path)
+        else:
+            await wait_msg.edit_text("❌ Ma'lumotlar bazasi topilmadi yoki bo'sh.")
+            
+    except Exception as e:
+        logging.error(f"PDF yuborishda xatolik: {e}")
+        await wait_msg.edit_text("⚠️ PDF yaratishda texnik xatolik yuz berdi.")
 
 async def main():
     await creat_table()
