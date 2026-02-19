@@ -1,20 +1,19 @@
-from typing import Any, Awaitable, Callable, Dict
+from typing import Any, Awaitable, Callable, Dict, Union
 from aiogram import BaseMiddleware
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.exceptions import TelegramBadRequest
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 
-# Kanallar ro'yxati
-CHANNELS = ["@it_corse", "-10023867376036"] # ID larda -100 bilan boshlanishiga e'tibor bering
+CHANNELS = ["@it_corse", "-10023867376036"]
 
 class majburiy_follow(BaseMiddleware):
     async def __call__(
         self,
-        handler: Callable[[Message, Dict[str, Any]], Awaitable[Any]],
-        event: Message,
+        handler: Callable[[Union[Message, CallbackQuery], Dict[str, Any]], Awaitable[Any]],
+        event: Union[Message, CallbackQuery],
         data: Dict[str, Any]
     ) -> Any:
-        # Agar foydalanuvchi xabar yubormasa (masalan, edit qilsa) davom ettirish
-        if not event.from_user:
+        
+        user = event.from_user
+        if not user:
             return await handler(event, data)
 
         bot = data['bot']
@@ -22,30 +21,32 @@ class majburiy_follow(BaseMiddleware):
 
         for channel in CHANNELS:
             try:
-                member = await bot.get_chat_member(chat_id=channel, user_id=event.from_user.id)
+                member = await bot.get_chat_member(chat_id=channel, user_id=user.id)
                 if member.status in ["left", "kicked"]:
                     not_joined_channels.append(channel)
-            except TelegramBadRequest:
-                # Agar bot admin bo'lmasa yoki kanal topilmasa shu yerga tushadi
-                print(f"Xatolik: Bot {channel} kanalida admin emas!")
+            except Exception:
                 continue 
 
         if not_joined_channels:
-            # Dinamik ravishda tugmalar yaratish
             buttons = []
             for i, ch in enumerate(not_joined_channels, 1):
-                # Username bo'lsa @ ni olib tashlab link qilish, ID bo'lsa asosiy kanal linkini qo'yish
                 url = f"https://t.me/{ch[1:]}" if ch.startswith('@') else "https://t.me/it_corse"
                 buttons.append([InlineKeyboardButton(text=f"{i}-kanalga a'zo bo'lish", url=url)])
             
-            # Tekshirish tugmasini qo'shish (ixtiyoriy)
             buttons.append([InlineKeyboardButton(text="✅ Tekshirish", callback_data="check_sub")])
-            
             keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
+
+            if isinstance(event, CallbackQuery):
+                await event.answer("Siz hali barcha kanallarga a'zo bo'lmadingiz!", show_alert=True)
+                return
             
             return await event.answer(
-                "🎬 **Botdan foydalanish uchun quyidagi kanallarga a'zo bo'ling!**\n\nA'zo bo'lib qayta /start bosing.",
+                "🎬 **Botdan foydalanish uchun quyidagi kanallarga a'zo bo'ling!**", 
                 reply_markup=keyboard
             )
+
+        if isinstance(event, CallbackQuery) and event.data == "check_sub":
+            await event.message.delete()
+            return await event.message.answer("Rahmat! Endi botdan foydalanishingiz mumkin.")
 
         return await handler(event, data)
