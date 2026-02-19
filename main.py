@@ -39,7 +39,7 @@ async def start_handler(message: types.Message, bot: Bot):
     is_ban = await check_user_ban(user_id)
     if not is_ban: 
         
-        if await check_user_sub(user_id, bot):
+        if not await check_user_sub(user_id, bot):
             if user_id in ADMINS:
                 await message.answer(f"Xush kelibsiz Admin, {full_name}", reply_markup=admin_menu())
             else:
