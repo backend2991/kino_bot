@@ -3,9 +3,10 @@ import logging
 import sys
 from aiogram.types import FSInputFile
 import os
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram import Bot, Dispatcher, types,F
 from aiogram.filters import Command
-from db import creat_table, insert_movie, insert_users, get_movie_by_code, find_user, is_ban, check_user_ban, is_not_ban
+from db import creat_table, insert_movie, insert_users, get_movie_by_code, find_user, is_ban, check_user_ban, is_not_ban, delete_movie_by_code, confirm_delete_markup
 from buttons import admin_menu, users_menu, confirm_yes_no, kino_sifati_menu, language_menu, janr_menu, mir_menu
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -21,7 +22,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 TOKEN = "8222917234:AAGxqndfNnBAzh9lS8HrYeNuABz3YNINSJQ"
-ADMINS = [858454334,]
+ADMINS = [8584543342,]
 from aiogram.client.session.aiohttp import AiohttpSession
 
 
@@ -371,6 +372,54 @@ async def f(message: types.Message):
             
     except Exception as e:
         await message.answer(f"❌ Xatolik yuz berdi: {str(e)}")
+    
+
+@dp.message(F.text == "🗑 Kino o'chirish")
+async def start_delete_process(message: types.Message, state: FSMContext):
+    if message.from_user.id in ADMINS:
+        await message.answer("🔢 O'chirmoqchi bo'lgan kino kodini kiriting:")
+        await state.set_state(admin_data.code) 
+    else:
+        await message.answer("❌ Bu amal faqat adminlar uchun!")
+    
+@dp.message(admin_data.code)
+async def confirm_delete_request(message: types.Message, state: FSMContext):
+    if message.from_user.id in ADMINS:
+        code = message.text.strip()
+        movie = await get_movie_by_code(code) 
+
+        if movie:
+            builder = InlineKeyboardBuilder()
+            builder.row(types.InlineKeyboardButton(text="Ha, o'chirilsin ✅", callback_data=f"del:{code}"))
+            builder.row(types.InlineKeyboardButton(text="Yo'q, bekor qilish ❌", callback_data="cancel_del"))
+            
+            await message.answer(
+                f"🎬 Kino topildi: {movie.get('title')}\n"
+                f"🔢 Kodi: {code}\n\n"
+                f"Rostdan ham o'chirmoqchimisiz?",
+                reply_markup=builder.as_markup()
+            )
+        else:
+            await message.answer(f"❌ {code} kodli kino topilmadi!")
+        
+        await state.clear() 
+
+@dp.callback_query(F.data.startswith("del:"))
+async def finish_delete_movie(call: types.CallbackQuery):
+    if call.from_user.id in ADMINS:
+        code = call.data.split(":")[1]
+        success = await delete_movie_by_code(code) 
+        
+        if success:
+            await call.message.edit_text(f"✅ Kod {code} bo'lgan kino bazadan o'chirildi.")
+        else:
+            await call.message.edit_text("❌ Xatolik! Kino topilmadi yoki o'chib bo'lgan.")
+    else:
+        await call.answer("Taqiqlangan!", show_alert=True)
+
+@dp.callback_query(F.data == "cancel_del")
+async def cancel_delete(call: types.CallbackQuery):
+    await call.message.edit_text("❌ O'chirish jarayoni bekor qilindi.")
     
 
 async def main():

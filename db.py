@@ -1,4 +1,6 @@
 import aiosqlite
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.types import ReplyKeyboardRemove
 
 async def creat_table():
     conn = await aiosqlite.connect('movies.db')
@@ -96,3 +98,16 @@ async def check_user_ban(user_id):
                 return row[0] == 'false' 
             return True
         
+async def delete_movie_by_code(code: str):
+    """Kino kodiga qarab bazadan o'chirish"""
+    async with aiosqlite.connect("movies.db") as db: 
+        cursor = await db.execute("SELECT * FROM films WHERE code = ?", (code,))
+        movie = await cursor.fetchone()
+        
+        if movie:
+            await db.execute("DELETE FROM films WHERE code = ?", (code,))
+            await db.commit()
+            return True  
+        return False
+    
+
