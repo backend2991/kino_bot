@@ -47,6 +47,7 @@ class majburiy_follow(BaseMiddleware):
 
         if isinstance(event, CallbackQuery) and event.data == "check_sub":
             await event.message.delete()
-            return await event.message.answer("Rahmat! Endi botdan foydalanishingiz mumkin.")
+            await event.message.answer("Rahmat! Botdan foydalanishingiz mumkin.")
+            return
 
         return await handler(event, data)
