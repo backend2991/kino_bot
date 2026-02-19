@@ -6,7 +6,7 @@ import os
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram import Bot, Dispatcher, types,F
 from aiogram.filters import Command
-from db import creat_table, insert_movie, insert_users, get_movie_by_code, find_user, is_ban, check_user_ban, is_not_ban, delete_movie_by_code, confirm_delete_markup
+from db import creat_table, insert_movie, insert_users, get_movie_by_code, find_user, is_ban, check_user_ban, is_not_ban, delete_movie_by_code
 from buttons import admin_menu, users_menu, confirm_yes_no, kino_sifati_menu, language_menu, janr_menu, mir_menu
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
