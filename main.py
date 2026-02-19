@@ -10,7 +10,7 @@ from db import creat_table, insert_movie, insert_users, get_movie_by_code, find_
 from buttons import admin_menu, users_menu, confirm_yes_no, kino_sifati_menu, language_menu, janr_menu, mir_menu
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
-from states import admin_data, find_movie, find_movie_admin, block_user, unblock_user
+from states import admin_data, find_movie, find_movie_admin, block_user, unblock_user, DeleteMovieState
 from chanal import check_user_sub, sub_markup
 from aiogram.types import ReplyKeyboardRemove
 from pdf import generate_users_pdf
@@ -374,53 +374,54 @@ async def f(message: types.Message):
         await message.answer(f"❌ Xatolik yuz berdi: {str(e)}")
     
 
-@dp.message(F.text == "🗑 Kino o'chirish")
-async def start_delete_process(message: types.Message, state: FSMContext):
-    if message.from_user.id in ADMINS:
-        await message.answer("🔢 O'chirmoqchi bo'lgan kino kodini kiriting:")
-        await state.set_state(admin_data.code) 
-    else:
-        await message.answer("❌ Bu amal faqat adminlar uchun!")
-    
-@dp.message(admin_data.code)
-async def confirm_delete_request(message: types.Message, state: FSMContext):
-    if message.from_user.id in ADMINS:
-        code = message.text.strip()
-        movie = await get_movie_by_code(code) 
+@dp.message(F.text == "🗑 Kino o'chirish", F.from_user.id.in_(ADMINS))
+async def cmd_delete_movie(message: types.Message, state: FSMContext):
+    await message.answer("🔢 O'chirmoqchi bo'lgan kino kodini kiriting:")
+    await state.set_state(DeleteMovieState.waiting_for_code)
 
-        if movie:
-            builder = InlineKeyboardBuilder()
-            builder.row(types.InlineKeyboardButton(text="Ha, o'chirilsin ✅", callback_data=f"del:{code}"))
-            builder.row(types.InlineKeyboardButton(text="Yo'q, bekor qilish ❌", callback_data="cancel_del"))
-            
-            await message.answer(
-                f"🎬 Kino topildi: {movie.get('title')}\n"
-                f"🔢 Kodi: {code}\n\n"
-                f"Rostdan ham o'chirmoqchimisiz?",
-                reply_markup=builder.as_markup()
-            )
-        else:
-            await message.answer(f"❌ {code} kodli kino topilmadi!")
+@dp.message(DeleteMovieState.waiting_for_code)
+async def process_delete_code(message: types.Message, state: FSMContext):
+    code = message.text.strip()
+    movie = await get_movie_by_code(code)
+
+    if movie:
+        title = movie.get('title') if isinstance(movie, dict) else movie[1]
         
-        await state.clear() 
+        builder = InlineKeyboardBuilder()
+        builder.add(types.InlineKeyboardButton(text="Ha, o'chirilsin ✅", callback_data=f"conf_del:{code}"))
+        builder.add(types.InlineKeyboardButton(text="Yo'q, bekor qilish ❌", callback_data="cancel_del"))
+        builder.adjust(2)
 
-@dp.callback_query(F.data.startswith("del:"))
-async def finish_delete_movie(call: types.CallbackQuery):
-    if call.from_user.id in ADMINS:
-        code = call.data.split(":")[1]
-        success = await delete_movie_by_code(code) 
-        
-        if success:
-            await call.message.edit_text(f"✅ Kod {code} bo'lgan kino bazadan o'chirildi.")
-        else:
-            await call.message.edit_text("❌ Xatolik! Kino topilmadi yoki o'chib bo'lgan.")
+        await message.answer(
+            f"🎬 **Kino topildi:**\n\n"
+            f"📌 Nomi: {title}\n"
+            f"🔢 Kodi: {code}\n\n"
+            f"Ushbu kinoni bazadan o'chirishga rozimisiz?",
+            reply_markup=builder.as_markup()
+        )
+        await state.set_state(DeleteMovieState.confirm_delete)
     else:
-        await call.answer("Taqiqlangan!", show_alert=True)
+        await message.answer(f"❌ `{code}` kodli kino topilmadi. Qayta urinib ko'ring yoki /start bosing.")
+        await state.clear()
 
-@dp.callback_query(F.data == "cancel_del")
-async def cancel_delete(call: types.CallbackQuery):
-    await call.message.edit_text("❌ O'chirish jarayoni bekor qilindi.")
+@dp.callback_query(DeleteMovieState.confirm_delete, F.data.startswith("conf_del:"))
+async def final_confirm(call: types.CallbackQuery, state: FSMContext):
+    code = call.data.split(":")[1]
+    result = await delete_movie_by_code(code)
     
+    if result:
+        await call.message.edit_text(f"✅ Kod {code} bo'lgan kino o'chirildi.")
+    else:
+        await call.message.edit_text("❌ Xatolik yuz berdi.")
+    
+    await state.clear()
+    await call.answer()
+
+@dp.callback_query(DeleteMovieState.confirm_delete, F.data == "cancel_del")
+async def cancel_confirm(call: types.CallbackQuery, state: FSMContext):
+    await call.message.edit_text("❌ O'chirish bekor qilindi.")
+    await state.clear()
+    await call.answer()
 
 async def main():
     await creat_table()
