@@ -21,7 +21,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 TOKEN = "8222917234:AAGxqndfNnBAzh9lS8HrYeNuABz3YNINSJQ"
-ADMINS = [8584543342,]
+ADMINS = [858454334,]
 from aiogram.client.session.aiohttp import AiohttpSession
 
 
@@ -56,10 +56,8 @@ async def start_handler(message: types.Message, bot: Bot):
                 reply_markup=sub_markup() 
             )
     else:
-        # Agar foydalanuvchi ban bo'lsa
         await message.answer("Siz botdan foydalanishdan chetlatilgansiz! ❌")
 
-# --- Tekshirish tugmasi bosilganda ---
 @dp.callback_query(F.data == "sub_check")
 async def callback_sub_check(call: types.CallbackQuery, bot: Bot):
     user_id = call.from_user.id
@@ -67,7 +65,6 @@ async def callback_sub_check(call: types.CallbackQuery, bot: Bot):
 
     if await check_user_sub(user_id, bot):
         await call.message.delete()
-        # Obuna bo'lgandan keyin menyuni chiqarish
         if user_id in ADMINS:
             await call.message.answer(f"Xush kelibsiz Admin, {full_name}", reply_markup=admin_menu())
         else:
