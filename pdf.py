@@ -13,53 +13,56 @@ async def generate_users_pdf(db_path="movies.db", output_pdf="users_list.pdf"):
 
     c = canvas.Canvas(output_pdf, pagesize=A4)
     width, height = A4
+    cols = [40, 80, 180, 450, 550] # X-coordinates for columns
     
+    def draw_headers(canvas_obj, current_y):
+        canvas_obj.setFont("Helvetica-Bold", 10)
+        headers = ["ID", "Telegram ID", "To'liq Ism", "Holati"]
+        for i, text in enumerate(headers):
+            canvas_obj.drawString(cols[i] + 5, current_y + 5, text)
+        
+        # Draw header box
+        canvas_obj.rect(cols[0], current_y, cols[-1] - cols[0], 20)
+        return current_y - 20
+
+    # Initial Header
     c.setFont("Helvetica-Bold", 16)
     c.drawCentredString(width / 2, height - 50, "Foydalanuvchilar Ro'yxati")
     
-    cols = [40, 70, 180, 450, 550]
-    y = height - 80
+    y = height - 100
+    y = draw_headers(c, y)
 
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(cols[0] + 5, y + 5, "ID")
-    c.drawString(cols[1] + 5, y + 5, "Telegram ID")
-    c.drawString(cols[2] + 5, y + 5, "To'liq Ism")
-    c.drawString(cols[3] + 5, y + 5, "Holati")
-
-    c.rect(cols[0], y, cols[4]-cols[0], 20)
-    for x in cols:
-        c.line(x, y, x, y + 20)
-
-    y -= 20
     c.setFont("Helvetica", 9)
-    
     for row in rows:
         u_id, tg_id, f_name, is_bann = row
         
+        # Text clipping for long names
+        clean_name = str(f_name)[:45] if f_name else "Ism yo'q"
+        
         c.drawString(cols[0] + 5, y + 5, str(u_id))
         c.drawString(cols[1] + 5, y + 5, str(tg_id))
-        c.drawString(cols[2] + 5, y + 5, str(f_name)[:50] if f_name else "Ism yo'q")
+        c.drawString(cols[2] + 5, y + 5, clean_name)
         
-        # Mantiqni barcha holatlar uchun tekshiramiz
-        # is_bann 1, True, "1" yoki "True" bo'lsa Banned chiqadi
+        # Status logic with color
         if is_bann in [1, True, "1", "True", "true"]:
-            status = "BANNED"
-            c.setFillColorRGB(0.8, 0, 0)
+            status, color = "BANNED", (0.8, 0, 0)
         else:
-            status = "ACTIVE"
-            c.setFillColorRGB(0, 0.5, 0)
+            status, color = "ACTIVE", (0, 0.5, 0)
             
+        c.setFillColorRGB(*color)
         c.drawString(cols[3] + 5, y + 5, status)
-        c.setFillColorRGB(0, 0, 0)
+        c.setFillColorRGB(0, 0, 0) # Reset to black
 
-        c.rect(cols[0], y, cols[4]-cols[0], 20)
-        for x in cols:
-            c.line(x, y, x, y + 20)
-
+        # Draw row border
+        c.rect(cols[0], y, cols[-1] - cols[0], 20)
+        
         y -= 20
+        
+        # Page break logic
         if y < 50:
             c.showPage()
             y = height - 50
+            y = draw_headers(c, y) # Redraw headers on new page
             c.setFont("Helvetica", 9)
 
     c.save()
