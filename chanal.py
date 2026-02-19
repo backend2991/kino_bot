@@ -27,6 +27,7 @@ class majburiy_follow(BaseMiddleware):
             except Exception:
                 continue 
 
+        # 1. Agar a'zo bo'lmagan kanallar bo'lsa:
         if not_joined_channels:
             buttons = []
             for i, ch in enumerate(not_joined_channels, 1):
@@ -45,9 +46,13 @@ class majburiy_follow(BaseMiddleware):
                 reply_markup=keyboard
             )
 
+        # 2. Agar hamma kanalga a'zo bo'lgan bo'lsa VA "Tekshirish" tugmasini bosgan bo'lsa:
         if isinstance(event, CallbackQuery) and event.data == "check_sub":
             await event.message.delete()
-            await event.message.answer("Rahmat! Botdan foydalanishingiz mumkin.")
-            return
+            await event.message.answer("Rahmat! Endi botdan foydalanishingiz mumkin.")
+            # BU YERDA handler() ni chaqirmaymiz, chunki tugma bosilganda main dagi kodlar (masalan start) ishlamasligi kerak.
+            # Foydalanuvchi shunchaki qaytadan xabar yozadi yoki start bosadi.
+            return 
 
+        # 3. Agar hamma kanalga a'zo bo'lsa, MAIN dagi kodlar ishlab ketsin:
         return await handler(event, data)
