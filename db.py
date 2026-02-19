@@ -101,11 +101,11 @@ async def check_user_ban(user_id):
 async def delete_movie_by_code(code: str):
     """Kino kodiga qarab bazadan o'chirish"""
     async with aiosqlite.connect("movies.db") as db: 
-        cursor = await db.execute("SELECT * FROM films WHERE code = ?", (code,))
+        cursor = await db.execute("SELECT * FROM movies WHERE code = ?", (code,))
         movie = await cursor.fetchone()
         
         if movie:
-            await db.execute("DELETE FROM films WHERE code = ?", (code,))
+            await db.execute("DELETE FROM movies WHERE code = ?", (code,))
             await db.commit()
             return True  
         return False
