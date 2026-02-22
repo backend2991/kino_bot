@@ -75,29 +75,36 @@ async def start_handler(message: types.Message, bot: Bot):
         )
 
 # --- 2. TARIF TANLANGANDA (REPLY TUGMALAR) ---
-@dp.message(F.text.contains("💳 Standart (4.000 so'm)"))
-async def process_standard_sub(message: types.Message, state: FSMContext):
+@dp.message(F.text == "💳 Standart (4.000 so'm)")
+async def process_standard(message: types.Message, state: FSMContext):
     await state.update_data(chosen_sub="standard", price="4.000")
     await message.answer(
         "Siz **Standart** tarifini tanladingiz.\n\n"
-        "💳 Karta: `9987 1000 1543 7888`\n"
+        "💳 Karta: `8600000011112222`\n"
         "💰 Summa: 4.000 so'm\n\n"
         "📸 To'lov qiling va chekni (skrinshot) yuboring.",
         parse_mode="Markdown"
     )
     await state.set_state(PaymentState.waiting_for_screenshot)
 
-@dp.message(F.text.contains("💎 Premium (8.000 so'm)"))
-async def process_premium_sub(message: types.Message, state: FSMContext):
+# 2. Premium tarif tugmasi bosilganda
+@dp.message(F.text == "💎 Premium (8.000 so'm)")
+async def process_premium(message: types.Message, state: FSMContext):
     await state.update_data(chosen_sub="premium", price="8.000")
     await message.answer(
         "Siz **Premium** tarifini tanladingiz.\n\n"
-        "💳 Karta: `9987 1000 1543 7888`\n"
+        "💳 Karta: `8600000011112222`\n"
         "💰 Summa: 8.000 so'm\n\n"
         "📸 To'lov qiling va chekni (skrinshot) yuboring.",
         parse_mode="Markdown"
     )
     await state.set_state(PaymentState.waiting_for_screenshot)
+
+# 3. Orqaga tugmasi bosilganda
+@dp.message(F.text == "⬅️ Orqaga")
+async def process_back(message: types.Message):
+    # Foydalanuvchini start holatiga yoki asosiy menyuga qaytaramiz
+    await message.answer("Bosh menyuga qaytdingiz.", reply_markup=users_menu())
 
 # --- 3. SKRINSHOTNI QABUL QILISH ---
 @dp.message(PaymentState.waiting_for_screenshot, F.photo)
