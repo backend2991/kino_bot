@@ -15,6 +15,7 @@ from chanal import check_user_sub, sub_markup
 from aiogram.types import ReplyKeyboardRemove
 from pdf_usres import generate_users_pdf
 from pdf_movies import generate_movies_pdf
+from datetime import datetime
 
 logging.basicConfig(
     level=logging.INFO,
@@ -129,7 +130,52 @@ async def get_payment_screenshot(message: types.Message, state: FSMContext):
     )
     await state.clear()
 
-# --- 4. ADMIN TASDIQLASHI (CALLBACK) ---
+@dp.message(F.text == "😍 Obunalarim")
+async def check_my_subscription(message: types.Message):
+    user_id = message.from_user.id
+    user_data = await find_user(user_id) # Bazadan ma'lumotni olamiz
+
+    if not user_data or user_data[4] == 'none':
+        await message.answer("Sizda hozirda faol obuna mavjud emas. ❌")
+        return
+
+   
+    
+    sub_type = user_data[4].capitalize()
+    start_date = user_data[5]
+    end_date = user_data[6]
+
+    # Qolgan vaqtni hisoblash
+    try:
+        end_dt = datetime.strptime(end_date, "%Y-%m-%d %H:%M:%S")
+        now = datetime.now()
+        remaining = end_dt - now
+        
+        days = remaining.days
+        hours, remainder = divmod(remaining.seconds, 3600)
+        minutes, _ = divmod(remainder, 60)
+
+        if remaining.total_seconds() <= 0:
+            status = "Muddati tugagan 🔴"
+            time_left = "0 kun"
+        else:
+            status = "Faol ✅"
+            time_left = f"{days} kun, {hours} soat, {minutes} daqiqa"
+    except:
+        time_left = "Aniqlab bo'lmadi"
+        status = "Noma'lum"
+
+    text = (
+        f"👤 **Foydalanuvchi:** {message.from_user.full_name}\n"
+        f"💎 **Tarif turi:** {sub_type}\n"
+        f"📅 **Sotib olingan sana:** `{start_date}`\n"
+        f"⌛ **Amal qilish muddati:** `{end_date}`\n"
+        f"🔄 **Holati:** {status}\n\n"
+        f"🕒 **Qolgan vaqt:** {time_left}"
+    )
+
+    await message.answer(text, parse_mode="Markdown")
+
 @dp.callback_query(F.data.startswith('admin_'))
 async def admin_decision(callback: types.CallbackQuery):
     parts = callback.data.split('_')
@@ -137,7 +183,7 @@ async def admin_decision(callback: types.CallbackQuery):
     
     if action == 'app':
         sub_type = parts[3]
-        await update_user_subscription(user_id, sub_type, 30) # 30 kunga
+        await update_user_subscription(user_id, sub_type, 30) 
         await bot.send_message(user_id, "✅ To'lovingiz tasdiqlandi! Bot ochildi.", reply_markup=users_menu())
         await callback.message.edit_caption(caption=callback.message.caption + "\n\n✅ TASDIQLANDI")
     else:

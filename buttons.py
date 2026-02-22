@@ -16,7 +16,7 @@ def admin_menu():
 def users_menu():
     u_menu = ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text='🔎 Kino qidirish')]
+            [KeyboardButton(text='🔎 Kino qidirish'), KeyboardButton(text='😍 Obunalarim')]
         ],
         resize_keyboard=True
     )
