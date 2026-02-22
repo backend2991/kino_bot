@@ -19,15 +19,17 @@ CREATE TABLE IF NOT EXISTS movies(
 )
 """)
     
-    await conn.execute("""
-        CREATE TABLE IF NOT EXISTS users(
+    await curr.execute("""
+        CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER UNIQUE,
-            full_name VARCHAR(150),
-            is_bann VARCHAR(10) DEFAULT 'false',
-            sub_type TEXT DEFAULT 'none', -- none, standard, premium
-            sub_date DATETIME -- obuna tugash vaqti
-        )""")
+            full_name TEXT,
+            is_bann TEXT DEFAULT 'false',
+            sub_type TEXT DEFAULT 'none',
+            sub_start_date TEXT,
+            sub_end_date TEXT
+        )
+    """)
     await conn.commit()
     await conn.close()
 
