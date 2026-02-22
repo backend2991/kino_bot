@@ -44,8 +44,7 @@ kino_sifati_menu = ReplyKeyboardMarkup(
         [
             KeyboardButton(text="🎬 1080p (Full HD)"),
             KeyboardButton(text="💎 4K Ultra HD")
-        ],
-        [KeyboardButton(text="⬅️ Orqaga")]
+        ]
     ],
     resize_keyboard=True
 )
