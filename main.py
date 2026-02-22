@@ -109,7 +109,6 @@ async def process_back(message: types.Message, state: FSMContext):
     await state.clear()
     await message.answer("Bosh menyuga qaytdingiz.", reply_markup=users_menu())
 
-# --- 3. SKRINSHOTNI QABUL QILISH ---
 @dp.message(PaymentState.waiting_for_screenshot, F.photo)
 async def get_payment_screenshot(message: types.Message, state: FSMContext):
     data = await state.get_data()
