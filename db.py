@@ -111,14 +111,11 @@ async def delete_movie_by_code(code: str):
 
 
 
-# 1. Admin to'lovni tasdiqlaganda obunani yangilash funksiyasi
 async def update_user_subscription(user_id, sub_type, days):
     async with aiosqlite.connect('movies.db') as conn:
         start_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        # 30 kun qo'shamiz
         end_date = (datetime.now() + timedelta(days=days)).strftime('%Y-%m-%d %H:%M:%S')
         
-        # Diqqat! Ustun nomlari bazadagi bilan bir xil bo'lishi shart
         await conn.execute("""
             UPDATE users 
             SET sub_type = ?, sub_start_date = ?, sub_end_date = ? 
@@ -127,7 +124,6 @@ async def update_user_subscription(user_id, sub_type, days):
         
         await conn.commit()
 
-# 2. Obunasi tugagan foydalanuvchilarni tekshirish (ixtiyoriy, lekin foydali)
 async def check_subscription_expiry(user_id):
     async with aiosqlite.connect('movies.db') as conn:
         conn.row_factory = aiosqlite.Row
@@ -136,17 +132,14 @@ async def check_subscription_expiry(user_id):
             if row and row['sub_date']:
                 expiry_date = datetime.datetime.strptime(row['sub_date'], '%Y-%m-%d %H:%M:%S')
                 if datetime.datetime.now() > expiry_date:
-                    # Obuna muddati o'tgan bo'lsa, statusni 'none' ga qaytaramiz
                     await conn.execute("UPDATE users SET sub_type = 'none' WHERE user_id = ?", (user_id,))
                     await conn.commit()
                     return False
                 return True
             return False
 
-# 3. Foydalanuvchi ma'lumotlarini olish (Sizdagi find_user ni biroz to'g'rilaymiz)
 async def find_user(user_id):
     async with aiosqlite.connect('movies.db') as conn:
-        # Bu yerda ma'lumotlarni tartibi bilan (id, user_id, full_name, is_bann, sub_type, sub_date) olamiz
         async with conn.execute("SELECT * FROM users WHERE user_id=?", (user_id,)) as curr:
             user = await curr.fetchone()
             return user

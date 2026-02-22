@@ -42,45 +42,35 @@ async def start_handler(message: types.Message, bot: Bot):
     user_id = message.from_user.id
     full_name = message.from_user.full_name
 
-    # Ban holatini tekshirish
     is_not_banned = await check_user_ban(user_id)
     if not is_not_banned:
         return await message.answer("Siz botdan foydalanishdan chetlatilgansiz! ❌")
 
-    # Kanallarga a'zolikni tekshirish
     if await check_user_sub(user_id, bot):
-        # Admin bo'lsa
         if user_id in ADMINS:
             await message.answer(f"Xush kelibsiz Admin, {full_name}", reply_markup=admin_menu())
             return
 
-        # Bazadan foydalanuvchini olish
         user_data = await find_user(user_id)
         if not user_data:
             await insert_users(user_id=user_id, full_name=full_name, is_bann='false')
             user_data = await find_user(user_id)
 
-        # PULLIK OBUNANI TEKSHIRISH
-        # user_data[4] bu 'sub_type' ustuni
+
         if user_data[4] == 'none': 
             await message.answer(
                 f"Xush kelibsiz {full_name}!\nBotdan foydalanish uchun tariflardan birini tanlang va obuna bo'ling:", 
                 reply_markup=subscription_reply_menu()
             )
         else:
-            # Obunasi bor foydalanuvchiga asosiy menyu
             await message.answer(f"Xush kelibsiz {full_name}", reply_markup=users_menu())
     else:
-        # Kanalga a'zo bo'lmagan bo'lsa
         await message.answer(
             f"Hurmatli {full_name}, botdan foydalanish uchun kanallarga a'zo bo'ling:",
             reply_markup=sub_markup() 
         )
 
-# --- 2. TARIF TANLANGANDA (REPLY TUGMALAR) ---
-# --- 2. TARIF TANLANGANDA (REPLY TUGMALAR) ---
 
-# F.text == "..." o'rniga F.text.contains(...) ishlating
 @dp.message(F.text.contains("Standart"))
 async def process_standard(message: types.Message, state: FSMContext):
     await state.clear()
@@ -118,7 +108,7 @@ async def get_payment_screenshot(message: types.Message, state: FSMContext):
     sub_type = data.get('chosen_sub')
     price = data.get('price')
     
-    admin_id = 8584543342  # <--- O'Z ID-INGIZNI YOZING
+    admin_id = 8584543342  
     
     await message.answer("✅ Rahmat! Chekingiz adminga yuborildi.")
     
@@ -133,7 +123,7 @@ async def get_payment_screenshot(message: types.Message, state: FSMContext):
 @dp.message(F.text == "😍 Obunalarim")
 async def check_my_subscription(message: types.Message):
     user_id = message.from_user.id
-    user_data = await find_user(user_id) # Bazadan ma'lumotni olamiz
+    user_data = await find_user(user_id) 
 
     if not user_data or user_data[4] == 'none':
         await message.answer("Sizda hozirda faol obuna mavjud emas. ❌")
@@ -145,7 +135,6 @@ async def check_my_subscription(message: types.Message):
     start_date = user_data[5]
     end_date = user_data[6]
 
-    # Qolgan vaqtni hisoblash
     try:
         end_dt = datetime.strptime(end_date, "%Y-%m-%d %H:%M:%S")
         now = datetime.now()
@@ -166,15 +155,15 @@ async def check_my_subscription(message: types.Message):
         status = "Noma'lum"
 
     text = (
-        f"👤 **Foydalanuvchi:** {message.from_user.full_name}\n"
-        f"💎 **Tarif turi:** {sub_type}\n"
-        f"📅 **Sotib olingan sana:** `{start_date}`\n"
-        f"⌛ **Amal qilish muddati:** `{end_date}`\n"
-        f"🔄 **Holati:** {status}\n\n"
-        f"🕒 **Qolgan vaqt:** {time_left}"
+        f"👤 <b>Foydalanuvchi:</b> {message.from_user.full_name}\n"
+        f"💎 <b>Tarif turi:</b> {sub_type}\n"
+        f"📅 <b>Sotib olingan sana:</b> <code>{start_date}</code>\n"
+        f"⌛ <b>Amal qilish muddati:</b> <code>{end_date}</code>\n"
+        f"🔄 <b>Holati:</b> {status}\n\n"
+        f"🕒 <b>Qolgan vaqt:</b> {time_left}"
     )
 
-    await message.answer(text, parse_mode="Markdown")
+    await message.answer(text, parse_mode="HTML")
 
 @dp.callback_query(F.data.startswith('admin_'))
 async def admin_decision(callback: types.CallbackQuery):
