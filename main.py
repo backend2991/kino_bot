@@ -16,6 +16,7 @@ from aiogram.types import ReplyKeyboardRemove
 from pdf_usres import generate_users_pdf
 from pdf_movies import generate_movies_pdf
 from datetime import datetime
+from pymant_history import generate_payments_pdf
 
 logging.basicConfig(
     level=logging.INFO,
@@ -213,6 +214,28 @@ async def callback_sub_check(call: types.CallbackQuery, bot: Bot):
     else:
         await call.answer("Siz hali barcha kanallarga a'zo bo'lmagansiz! ❌", show_alert=True)
             
+@dp.message(F.text == "📜 To'lovlar tarixi")
+async def send_payments_report(message: types.Message):
+    if message.from_user.id not in ADMINS:
+        return
+
+    status_msg = await message.answer("⏳ To'lovlar tarixi tayyorlanmoqda...")
+    
+    try:
+        pdf_path = await generate_payments_pdf()
+        
+        if pdf_path:
+            document = FSInputFile(pdf_path)
+            await message.answer_document(
+                document, 
+                caption=f"📊 To'lovlar tarixi (Oxirgi yangilanish: {datetime.now().strftime('%d.%m.%Y')})"
+            )
+            await status_msg.delete()
+            os.remove(pdf_path) 
+        else:
+            await status_msg.edit_text("❌ Ma'lumot topilmadi.")
+    except Exception as e:
+        await message.answer(f"Xatolik: {e}")
 
 @dp.message(F.text == '➕ Kino qo\'shish')
 async def creat_films_handler(message: types.Message, state  : FSMContext):
