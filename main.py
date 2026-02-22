@@ -34,6 +34,8 @@ session = AiohttpSession(proxy=PROXY_URL)
 bot = Bot(token=TOKEN, session=session)
 dp = Dispatcher()
 
+print("salom!")
+
 @dp.message(Command('start'))
 async def start_handler(message: types.Message, bot: Bot):
     user_id = message.from_user.id
