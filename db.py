@@ -1,7 +1,7 @@
 import aiosqlite
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import ReplyKeyboardRemove
-import datetime
+from datetime import datetime, timedelta
 async def creat_table():
     conn = await aiosqlite.connect('movies.db')
     curr = await conn.cursor()
@@ -112,16 +112,19 @@ async def delete_movie_by_code(code: str):
 
 
 # 1. Admin to'lovni tasdiqlaganda obunani yangilash funksiyasi
-async def update_user_subscription(user_id, sub_type, days=30):
+async def update_user_subscription(user_id, sub_type, days):
     async with aiosqlite.connect('movies.db') as conn:
-        # Hozirgi vaqtga 30 kun (yoki berilgan kun) ni qo'shamiz
-        expiry_date = datetime.datetime.now() + datetime.timedelta(days=days)
-        # Bazadagi sub_type va sub_date ustunlarini yangilaymiz
+        start_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        # 30 kun qo'shamiz
+        end_date = (datetime.now() + timedelta(days=days)).strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Diqqat! Ustun nomlari bazadagi bilan bir xil bo'lishi shart
         await conn.execute("""
             UPDATE users 
-            SET sub_type = ?, sub_date = ? 
+            SET sub_type = ?, sub_start_date = ?, sub_end_date = ? 
             WHERE user_id = ?
-        """, (sub_type, expiry_date.strftime('%Y-%m-%d %H:%M:%S'), user_id))
+        """, (sub_type, start_date, end_date, user_id))
+        
         await conn.commit()
 
 # 2. Obunasi tugagan foydalanuvchilarni tekshirish (ixtiyoriy, lekin foydali)
