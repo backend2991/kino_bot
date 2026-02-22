@@ -25,8 +25,12 @@ class unblock_user(StatesGroup):
     blcok_user_unblock = State() 
     confirm_user_unblock = State()
 
-from aiogram.fsm.state import State, StatesGroup
 
 class DeleteMovieState(StatesGroup):
     waiting_for_code = State() 
     confirm_delete = State()
+
+
+
+class PaymentState(StatesGroup):
+    waiting_for_screenshot = State()

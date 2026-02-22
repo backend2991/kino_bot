@@ -19,16 +19,15 @@ CREATE TABLE IF NOT EXISTS movies(
 )
 """)
     
-    await curr.execute("""
-CREATE TABLE IF NOT EXISTS users(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER UNIQUE,
-    full_name VARCHAR(150),
-    is_bann VARCHAR(10) DEFAULT 'false'
-)
-
-
-""")
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS users(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER UNIQUE,
+            full_name VARCHAR(150),
+            is_bann VARCHAR(10) DEFAULT 'false',
+            sub_type TEXT DEFAULT 'none', -- none, standard, premium
+            sub_date DATETIME -- obuna tugash vaqti
+        )""")
     await conn.commit()
     await conn.close()
 
@@ -110,4 +109,12 @@ async def delete_movie_by_code(code: str):
             return True  
         return False
     
+async def update_user_subscription(user_id, sub_type, days):
+    async with aiosqlite.connect('movies.db') as conn:
+        import datetime
+        expiry_date = datetime.datetime.now() + datetime.timedelta(days=days)
+        await conn.execute("""
+            UPDATE users SET sub_type=?, sub_date=? WHERE user_id=?
+        """, (sub_type, expiry_date, user_id))
+        await conn.commit()
 

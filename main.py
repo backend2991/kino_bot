@@ -7,7 +7,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram import Bot, Dispatcher, types,F
 from aiogram.filters import Command
 from db import creat_table, insert_movie, insert_users, get_movie_by_code, find_user, is_ban, check_user_ban, is_not_ban, delete_movie_by_code
-from buttons import admin_menu, users_menu, confirm_yes_no, kino_sifati_menu, language_menu, janr_menu, mir_menu
+from buttons import admin_menu, users_menu, confirm_yes_no, kino_sifati_menu, language_menu, janr_menu, mir_menu, subscription_reply_menu, admin_approval_keys
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
 from states import admin_data, find_movie, find_movie_admin, block_user, unblock_user, DeleteMovieState
@@ -15,6 +15,7 @@ from chanal import check_user_sub, sub_markup
 from aiogram.types import ReplyKeyboardRemove
 from pdf_usres import generate_users_pdf
 from pdf_movies import generate_movies_pdf
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
@@ -38,27 +39,34 @@ async def start_handler(message: types.Message, bot: Bot):
     user_id = message.from_user.id
     full_name = message.from_user.full_name
 
-    is_ban = await check_user_ban(user_id)
-    if is_ban: 
+    is_not_banned = await check_user_ban(user_id)
+    if not is_not_banned:
+        return await message.answer("Siz botdan foydalanishdan chetlatilgansiz! ❌")
+
+    if await check_user_sub(user_id, bot):
+        if user_id in ADMINS:
+            await message.answer(f"Xush kelibsiz Admin, {full_name}", reply_markup=admin_menu())
+            return
+
+        user_data = await find_user(user_id) 
         
-        if await check_user_sub(user_id, bot):
-            if user_id in ADMINS:
-                await message.answer(f"Xush kelibsiz Admin, {full_name}", reply_markup=admin_menu())
-            else:
-                await message.answer(f"Xush kelibsiz {full_name}", reply_markup=users_menu())
-                
-                await insert_users(
-                    user_id=user_id,
-                    full_name=full_name,
-                    is_bann='false'
-                )
-        else:
+        if not user_data:
+            await insert_users(user_id=user_id, full_name=full_name, is_bann='false')
+            user_data = await find_user(user_id)
+
+        if user_data[4] == 'none': 
             await message.answer(
-                f"Hurmatli {full_name}, botdan foydalanish uchun kanallarga a'zo bo'ling:",
-                reply_markup=sub_markup() 
+                f"Xush kelibsiz {full_name}!\nBotdan foydalanish uchun tariflardan birini tanlang va obuna bo'ling:", 
+                reply_markup=subscription_reply_menu() # Boya yaratgan Reply menyu
             )
+        else:
+            await message.answer(f"Xush kelibsiz {full_name}", reply_markup=users_menu())
+
     else:
-        await message.answer("Siz botdan foydalanishdan chetlatilgansiz! ❌")
+        await message.answer(
+            f"Hurmatli {full_name}, botdan foydalanish uchun kanallarga a'zo bo'ling:",
+            reply_markup=sub_markup() 
+        )
 
 @dp.callback_query(F.data == "sub_check")
 async def callback_sub_check(call: types.CallbackQuery, bot: Bot):

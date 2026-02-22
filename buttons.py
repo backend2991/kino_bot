@@ -84,3 +84,22 @@ def mir_menu():
         resize_keyboard=True
     )
     return mir_menu
+
+def subscription_reply_menu():
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="💳 Standart (4.000 so'm)")],
+            [KeyboardButton(text="💎 Premium (8.000 so'm)")],
+            [KeyboardButton(text="⬅️ Orqaga")]
+        ],
+        resize_keyboard=True
+    )
+
+def admin_approval_keys(user_id, sub_type):
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="✅ Tasdiqlash", callback_data=f"admin_app_{user_id}_{sub_type}"),
+            InlineKeyboardButton(text="❌ Rad etish", callback_data=f"admin_rej_{user_id}")
+        ]
+    ])
+    return keyboard
