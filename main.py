@@ -77,9 +77,10 @@ async def start_handler(message: types.Message, bot: Bot):
 # --- 2. TARIF TANLANGANDA (REPLY TUGMALAR) ---
 # --- 2. TARIF TANLANGANDA (REPLY TUGMALAR) ---
 
-@dp.message(F.text == "💳 Standart (4.000 so'm)")
+# F.text == "..." o'rniga F.text.contains(...) ishlating
+@dp.message(F.text.contains("Standart"))
 async def process_standard(message: types.Message, state: FSMContext):
-    await state.clear() # Har ehtimolga qarshi eski statelarni tozalaymiz
+    await state.clear()
     await state.update_data(chosen_sub="standard", price="4.000")
     await message.answer(
         "Siz **Standart** tarifini tanladingiz.\n\n"
@@ -90,7 +91,7 @@ async def process_standard(message: types.Message, state: FSMContext):
     )
     await state.set_state(PaymentState.waiting_for_screenshot)
 
-@dp.message(F.text == "💎 Premium (8.000 so'm)")
+@dp.message(F.text.contains("Premium"))
 async def process_premium(message: types.Message, state: FSMContext):
     await state.clear()
     await state.update_data(chosen_sub="premium", price="8.000")
