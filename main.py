@@ -105,6 +105,7 @@ async def get_payment_screenshot(message: types.Message, state: FSMContext):
     sub_type = data.get('chosen_sub')
     price = data.get('price')
     
+    
     admin_id = 8584543342  
     
     await message.answer("✅ Rahmat! Chekingiz adminga yuborildi.")
@@ -167,11 +168,11 @@ async def admin_decision(callback: types.CallbackQuery, state: FSMContext):
     parts = callback.data.split('_')
     action, user_id = parts[1], int(parts[2])
     sub_type = parts[3] if len(parts) > 3 else "noma'lum"
-
+    username = callback.from_user.username or "yo'q"
+    phone = "998901234567"
+    full_name = callback.from_user.full_name
     if action == 'app': 
-        await update_user_subscription(user_id, sub_type, 30)
-        await insert_payment(user_id, "User", sub_type, "noma'lum", callback.message.photo[-1].file_id, "tasdiqlandi")
-        
+        await insert_payment(user_id, full_name, username, phone, sub_type, "tasdiqlandi")        
         await bot.send_message(user_id, "✅ To'lovingiz tasdiqlandi! Bot ochildi.", reply_markup=users_menu())
         await callback.message.edit_caption(caption=callback.message.caption + "\n\n✅ TASDIQLANDI")
         await callback.answer("Tasdiqlandi")
