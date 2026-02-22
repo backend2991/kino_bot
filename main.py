@@ -35,21 +35,19 @@ session = AiohttpSession(proxy=PROXY_URL)
 bot = Bot(token=TOKEN, session=session)
 dp = Dispatcher()
 
-@dp.callback_query(F.data == "sub_check")
-async def check_subscription_callback(callback: types.CallbackQuery, bot: Bot):
-    user_id = callback.from_user.id
-    full_name = callback.from_user.full_name
 
-    is_subscribed = await check_user_sub(user_id, bot)
-    
-    if is_subscribed:
-        is_not_banned = await check_user_ban(user_id)
-        if not is_not_banned:
-            return await callback.message.answer("Siz botdan foydalanishdan chetlatilgansiz! ❌")
+@dp.message(Command('start'))
+async def start_handler(message: types.Message, bot: Bot):
+    user_id = message.from_user.id
+    full_name = message.from_user.full_name
 
+    is_not_banned = await check_user_ban(user_id)
+    if not is_not_banned:
+        return await message.answer("Siz botdan foydalanishdan chetlatilgansiz! ❌")
+
+    if await check_user_sub(user_id, bot):
         if user_id in ADMINS:
-            await callback.message.answer(f"Xush kelibsiz Admin, {full_name}", reply_markup=admin_menu())
-            await callback.answer()
+            await message.answer(f"Xush kelibsiz Admin, {full_name}", reply_markup=admin_menu())
             return
 
         user_data = await find_user(user_id)
@@ -57,20 +55,18 @@ async def check_subscription_callback(callback: types.CallbackQuery, bot: Bot):
             await insert_users(user_id=user_id, full_name=full_name, is_bann='false')
             user_data = await find_user(user_id)
 
+
         if user_data[4] == 'none': 
-            await callback.message.answer(
-                f"Rahmat! Kanallarga muvaffaqiyatli a'zo bo'ldingiz.\n\nEndi botdan foydalanish uchun tariflardan birini tanlang va obuna bo'ling:", 
+            await message.answer(
+                f"Xush kelibsiz {full_name}!\nBotdan foydalanish uchun tariflardan birini tanlang va obuna bo'ling:", 
                 reply_markup=subscription_reply_menu()
             )
         else:
-            await callback.message.answer(f"Xush kelibsiz {full_name}", reply_markup=users_menu())
-        
-        await callback.message.delete()
-        
+            await message.answer(f"Xush kelibsiz {full_name}", reply_markup=subscription_reply_menu())
     else:
-        await callback.answer(
-            "Siz hali hamma kanallarga a'zo bo'lmadingiz! ❌", 
-            show_alert=True
+        await message.answer(
+            f"Hurmatli {full_name}, botdan foydalanish uchun kanallarga a'zo bo'ling:",
+            reply_markup=sub_markup() 
         )
 
 
