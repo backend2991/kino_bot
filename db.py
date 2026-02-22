@@ -1,7 +1,7 @@
 import aiosqlite
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import ReplyKeyboardRemove
-
+import datetime
 async def creat_table():
     conn = await aiosqlite.connect('movies.db')
     curr = await conn.cursor()
@@ -62,12 +62,7 @@ async def get_movie_by_code(code):
         return movie
 
 
-async def find_user(user_id):
-    async with aiosqlite.connect('movies.db') as conn:
-        curr = await conn.cursor()
-        await curr.execute("SELECT * FROM users WHERE user_id=?", (user_id,))
-        user = await curr.fetchone()
-        return user 
+ 
 
 async def is_ban(user_id):
     async with aiosqlite.connect('movies.db') as conn:
@@ -109,12 +104,45 @@ async def delete_movie_by_code(code: str):
             return True  
         return False
     
-async def update_user_subscription(user_id, sub_type, days):
+
+
+
+
+
+# 1. Admin to'lovni tasdiqlaganda obunani yangilash funksiyasi
+async def update_user_subscription(user_id, sub_type, days=30):
     async with aiosqlite.connect('movies.db') as conn:
-        import datetime
+        # Hozirgi vaqtga 30 kun (yoki berilgan kun) ni qo'shamiz
         expiry_date = datetime.datetime.now() + datetime.timedelta(days=days)
+        # Bazadagi sub_type va sub_date ustunlarini yangilaymiz
         await conn.execute("""
-            UPDATE users SET sub_type=?, sub_date=? WHERE user_id=?
-        """, (sub_type, expiry_date, user_id))
+            UPDATE users 
+            SET sub_type = ?, sub_date = ? 
+            WHERE user_id = ?
+        """, (sub_type, expiry_date.strftime('%Y-%m-%d %H:%M:%S'), user_id))
         await conn.commit()
+
+# 2. Obunasi tugagan foydalanuvchilarni tekshirish (ixtiyoriy, lekin foydali)
+async def check_subscription_expiry(user_id):
+    async with aiosqlite.connect('movies.db') as conn:
+        conn.row_factory = aiosqlite.Row
+        async with conn.execute("SELECT sub_date FROM users WHERE user_id = ?", (user_id,)) as cursor:
+            row = await cursor.fetchone()
+            if row and row['sub_date']:
+                expiry_date = datetime.datetime.strptime(row['sub_date'], '%Y-%m-%d %H:%M:%S')
+                if datetime.datetime.now() > expiry_date:
+                    # Obuna muddati o'tgan bo'lsa, statusni 'none' ga qaytaramiz
+                    await conn.execute("UPDATE users SET sub_type = 'none' WHERE user_id = ?", (user_id,))
+                    await conn.commit()
+                    return False
+                return True
+            return False
+
+# 3. Foydalanuvchi ma'lumotlarini olish (Sizdagi find_user ni biroz to'g'rilaymiz)
+async def find_user(user_id):
+    async with aiosqlite.connect('movies.db') as conn:
+        # Bu yerda ma'lumotlarni tartibi bilan (id, user_id, full_name, is_bann, sub_type, sub_date) olamiz
+        async with conn.execute("SELECT * FROM users WHERE user_id=?", (user_id,)) as curr:
+            user = await curr.fetchone()
+            return user
 

@@ -6,11 +6,11 @@ import os
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram import Bot, Dispatcher, types,F
 from aiogram.filters import Command
-from db import creat_table, insert_movie, insert_users, get_movie_by_code, find_user, is_ban, check_user_ban, is_not_ban, delete_movie_by_code
+from db import creat_table, insert_movie, insert_users, get_movie_by_code, find_user, is_ban, check_user_ban, is_not_ban, delete_movie_by_code, update_user_subscription, check_subscription_expiry
 from buttons import admin_menu, users_menu, confirm_yes_no, kino_sifati_menu, language_menu, janr_menu, mir_menu, subscription_reply_menu, admin_approval_keys
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
-from states import admin_data, find_movie, find_movie_admin, block_user, unblock_user, DeleteMovieState
+from states import admin_data, find_movie, find_movie_admin, block_user, unblock_user, DeleteMovieState, PaymentState
 from chanal import check_user_sub, sub_markup
 from aiogram.types import ReplyKeyboardRemove
 from pdf_usres import generate_users_pdf
@@ -39,34 +39,100 @@ async def start_handler(message: types.Message, bot: Bot):
     user_id = message.from_user.id
     full_name = message.from_user.full_name
 
+    # Ban holatini tekshirish
     is_not_banned = await check_user_ban(user_id)
     if not is_not_banned:
         return await message.answer("Siz botdan foydalanishdan chetlatilgansiz! ❌")
 
+    # Kanallarga a'zolikni tekshirish
     if await check_user_sub(user_id, bot):
+        # Admin bo'lsa
         if user_id in ADMINS:
             await message.answer(f"Xush kelibsiz Admin, {full_name}", reply_markup=admin_menu())
             return
 
-        user_data = await find_user(user_id) 
-        
+        # Bazadan foydalanuvchini olish
+        user_data = await find_user(user_id)
         if not user_data:
             await insert_users(user_id=user_id, full_name=full_name, is_bann='false')
             user_data = await find_user(user_id)
 
+        # PULLIK OBUNANI TEKSHIRISH
+        # user_data[4] bu 'sub_type' ustuni
         if user_data[4] == 'none': 
             await message.answer(
                 f"Xush kelibsiz {full_name}!\nBotdan foydalanish uchun tariflardan birini tanlang va obuna bo'ling:", 
-                reply_markup=subscription_reply_menu() # Boya yaratgan Reply menyu
+                reply_markup=subscription_reply_menu()
             )
         else:
+            # Obunasi bor foydalanuvchiga asosiy menyu
             await message.answer(f"Xush kelibsiz {full_name}", reply_markup=users_menu())
-
     else:
+        # Kanalga a'zo bo'lmagan bo'lsa
         await message.answer(
             f"Hurmatli {full_name}, botdan foydalanish uchun kanallarga a'zo bo'ling:",
             reply_markup=sub_markup() 
         )
+
+# --- 2. TARIF TANLANGANDA (REPLY TUGMALAR) ---
+@dp.message(F.text.contains("Standart (4.000 so'm)"))
+async def process_standard_sub(message: types.Message, state: FSMContext):
+    await state.update_data(chosen_sub="standard", price="4.000")
+    await message.answer(
+        "Siz **Standart** tarifini tanladingiz.\n\n"
+        "💳 Karta: `8600000011112222`\n"
+        "💰 Summa: 4.000 so'm\n\n"
+        "📸 To'lov qiling va chekni (skrinshot) yuboring.",
+        parse_mode="Markdown"
+    )
+    await state.set_state(PaymentState.waiting_for_screenshot)
+
+@dp.message(F.text.contains("Premium (8.000 so'm)"))
+async def process_premium_sub(message: types.Message, state: FSMContext):
+    await state.update_data(chosen_sub="premium", price="8.000")
+    await message.answer(
+        "Siz **Premium** tarifini tanladingiz.\n\n"
+        "💳 Karta: `8600000011112222`\n"
+        "💰 Summa: 8.000 so'm\n\n"
+        "📸 To'lov qiling va chekni (skrinshot) yuboring.",
+        parse_mode="Markdown"
+    )
+    await state.set_state(PaymentState.waiting_for_screenshot)
+
+# --- 3. SKRINSHOTNI QABUL QILISH ---
+@dp.message(PaymentState.waiting_for_screenshot, F.photo)
+async def get_payment_screenshot(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    sub_type = data.get('chosen_sub')
+    price = data.get('price')
+    
+    admin_id = 8584543342  # <--- O'Z ID-INGIZNI YOZING
+    
+    await message.answer("✅ Rahmat! Chekingiz adminga yuborildi.")
+    
+    await bot.send_photo(
+        admin_id, 
+        message.photo[-1].file_id, 
+        caption=f"🔔 Yangi to'lov!\n👤: {message.from_user.full_name}\n🆔: {message.from_user.id}\n💎 Tarif: {sub_type}\n💵 Summa: {price}",
+        reply_markup=admin_approval_keys(message.from_user.id, sub_type)
+    )
+    await state.clear()
+
+# --- 4. ADMIN TASDIQLASHI (CALLBACK) ---
+@dp.callback_query(F.data.startswith('admin_'))
+async def admin_decision(callback: types.CallbackQuery):
+    parts = callback.data.split('_')
+    action, user_id = parts[1], int(parts[2])
+    
+    if action == 'app':
+        sub_type = parts[3]
+        await update_user_subscription(user_id, sub_type, 30) # 30 kunga
+        await bot.send_message(user_id, "✅ To'lovingiz tasdiqlandi! Bot ochildi.", reply_markup=users_menu())
+        await callback.message.edit_caption(caption=callback.message.caption + "\n\n✅ TASDIQLANDI")
+    else:
+        await bot.send_message(user_id, "❌ To'lovingiz rad etildi.")
+        await callback.message.edit_caption(caption=callback.message.caption + "\n\n❌ RAD ETILDI")
+    await callback.answer()
 
 @dp.callback_query(F.data == "sub_check")
 async def callback_sub_check(call: types.CallbackQuery, bot: Bot):
