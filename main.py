@@ -6,11 +6,11 @@ import os
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram import Bot, Dispatcher, types,F
 from aiogram.filters import Command
-from db import creat_table, insert_movie, insert_users, get_movie_by_code, find_user, is_ban, check_user_ban, is_not_ban, delete_movie_by_code, update_user_subscription, check_subscription_expiry
+from db import creat_table, insert_movie, insert_users, get_movie_by_code, find_user, is_ban, check_user_ban, is_not_ban, delete_movie_by_code, update_user_subscription, check_subscription_expiry, insert_payment
 from buttons import admin_menu, users_menu, confirm_yes_no, kino_sifati_menu, language_menu, janr_menu, mir_menu, subscription_reply_menu, admin_approval_keys
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
-from states import admin_data, find_movie, find_movie_admin, block_user, unblock_user, DeleteMovieState, PaymentState
+from states import admin_data, find_movie, find_movie_admin, block_user, unblock_user, DeleteMovieState, PaymentState, PaymentStateHistory
 from chanal import check_user_sub, sub_markup
 from aiogram.types import ReplyKeyboardRemove
 from pdf_usres import generate_users_pdf
@@ -162,19 +162,26 @@ async def check_my_subscription(message: types.Message):
     await message.answer(text, parse_mode="HTML")
 
 @dp.callback_query(F.data.startswith('admin_'))
-async def admin_decision(callback: types.CallbackQuery):
+async def admin_decision(callback: types.CallbackQuery, state: FSMContext):
     parts = callback.data.split('_')
     action, user_id = parts[1], int(parts[2])
-    
-    if action == 'app':
-        sub_type = parts[3]
-        await update_user_subscription(user_id, sub_type, 30) 
+    sub_type = parts[3] if len(parts) > 3 else "noma'lum"
+
+    if action == 'app': 
+        await update_user_subscription(user_id, sub_type, 30)
+        await insert_payment(user_id, "User", sub_type, "noma'lum", callback.message.photo[-1].file_id, "tasdiqlandi")
+        
         await bot.send_message(user_id, "✅ To'lovingiz tasdiqlandi! Bot ochildi.", reply_markup=users_menu())
         await callback.message.edit_caption(caption=callback.message.caption + "\n\n✅ TASDIQLANDI")
-    else:
-        await bot.send_message(user_id, "❌ To'lovingiz rad etildi.")
-        await callback.message.edit_caption(caption=callback.message.caption + "\n\n❌ RAD ETILDI")
-    await callback.answer()
+        await callback.answer("Tasdiqlandi")
+
+    elif action == 'rej': 
+        await state.set_state(PaymentStateHistory.waiting_for_reject_reason)
+        await state.update_data(reject_user_id=user_id, reject_msg_id=callback.message.message_id, 
+                                rej_sub_type=sub_type, rej_photo=callback.message.photo[-1].file_id)
+        
+        await callback.message.answer("❌ Rad etish sababini yozing:")
+        await callback.answer()
 
 @dp.callback_query(F.data == "sub_check")
 async def callback_sub_check(call: types.CallbackQuery, bot: Bot):

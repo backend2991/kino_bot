@@ -30,6 +30,20 @@ CREATE TABLE IF NOT EXISTS movies(
             sub_end_date TEXT
         )
     """)
+    
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS payments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            full_name TEXT,
+            sub_type TEXT,
+            price TEXT,
+            screenshot_id TEXT,
+            status TEXT, -- 'tasdiqlandi' yoki 'rad_etildi'
+            reason TEXT, -- rad etish sababi
+            date TEXT
+        )
+    """)
     await conn.commit()
     await conn.close()
 
@@ -82,7 +96,14 @@ async def is_not_ban(user_id):
 
         
         
-
+async def insert_payment(user_id, full_name, sub_type, price, screenshot_id, status, reason=""):
+    async with aiosqlite.connect('movies.db') as conn:
+        date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        await conn.execute("""
+            INSERT INTO payments (user_id, full_name, sub_type, price, screenshot_id, status, reason, date)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (user_id, full_name, sub_type, price, screenshot_id, status, reason, date))
+        await conn.commit()
 
 
 

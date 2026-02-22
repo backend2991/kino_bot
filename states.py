@@ -34,3 +34,7 @@ class DeleteMovieState(StatesGroup):
 
 class PaymentState(StatesGroup):
     waiting_for_screenshot = State()
+
+class PaymentStateHistory(StatesGroup):
+    waiting_for_screenshot = State()
+    waiting_for_reject_reason = State() 
