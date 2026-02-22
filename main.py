@@ -25,7 +25,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 TOKEN = "8222917234:AAGxqndfNnBAzh9lS8HrYeNuABz3YNINSJQ"
-ADMINS = [8584543342,]
+ADMINS = [858454334,]
 from aiogram.client.session.aiohttp import AiohttpSession
 
 
@@ -35,7 +35,6 @@ session = AiohttpSession(proxy=PROXY_URL)
 bot = Bot(token=TOKEN, session=session)
 dp = Dispatcher()
 
-print("salom! ..")
 
 @dp.message(Command('start'))
 async def start_handler(message: types.Message, bot: Bot):
