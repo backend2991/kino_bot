@@ -62,7 +62,7 @@ async def start_handler(message: types.Message, bot: Bot):
                 reply_markup=subscription_reply_menu()
             )
         else:
-            await message.answer(f"Xush kelibsiz {full_name}", reply_markup=subscription_reply_menu())
+            await message.answer(f"Xush kelibsiz {full_name}", reply_markup=users_menu())
     else:
         await message.answer(
             f"Hurmatli {full_name}, botdan foydalanish uchun kanallarga a'zo bo'ling:",
@@ -76,7 +76,7 @@ async def process_standard(message: types.Message, state: FSMContext):
     await state.update_data(chosen_sub="standard", price="4.000")
     await message.answer(
         "Siz **Standart** tarifini tanladingiz.\n\n"
-        "💳 Karta: `8600000011112222`\n"
+        "💳 Karta: `9987 1000 1543 7888`\n"
         "💰 Summa: 4.000 so'm\n\n"
         "📸 To'lov qiling va chekni (skrinshot) yuboring.",
         parse_mode="Markdown"
@@ -89,7 +89,7 @@ async def process_premium(message: types.Message, state: FSMContext):
     await state.update_data(chosen_sub="premium", price="8.000")
     await message.answer(
         "Siz **Premium** tarifini tanladingiz.\n\n"
-        "💳 Karta: `8600000011112222`\n"
+        "💳 Karta: `9987 1000 1543 7888`\n"
         "💰 Summa: 8.000 so'm\n\n"
         "📸 To'lov qiling va chekni (skrinshot) yuboring.",
         parse_mode="Markdown"
@@ -186,11 +186,26 @@ async def callback_sub_check(call: types.CallbackQuery, bot: Bot):
 
     if await check_user_sub(user_id, bot):
         await call.message.delete()
+        
         if user_id in ADMINS:
             await call.message.answer(f"Xush kelibsiz Admin, {full_name}", reply_markup=admin_menu())
+            return
+
+        user_data = await find_user(user_id)
+        
+        if not user_data:
+            await insert_users(user_id=user_id, full_name=full_name, is_bann='false')
+            user_data = await find_user(user_id)
+
+        if user_data[4] == 'none': 
+            await call.message.answer(
+                f"Rahmat {full_name}! Kanallarga a'zo bo'ldingiz.\n"
+                "Endi botdan foydalanish uchun tariflardan birini tanlang:", 
+                reply_markup=subscription_reply_menu()
+            )
         else:
             await call.message.answer(f"Xush kelibsiz {full_name}", reply_markup=users_menu())
-            await insert_users(user_id=user_id, full_name=full_name, is_bann='false')
+            
     else:
         await call.answer("Siz hali barcha kanallarga a'zo bo'lmagansiz! ❌", show_alert=True)
             
