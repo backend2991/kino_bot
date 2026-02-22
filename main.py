@@ -75,24 +75,24 @@ async def start_handler(message: types.Message, bot: Bot):
         )
 
 # --- 2. TARIF TANLANGANDA (REPLY TUGMALAR) ---
-@dp.message(F.text.contains("Standart (4.000 so'm)"))
+@dp.message(F.text.contains("💳 Standart (4.000 so'm)"))
 async def process_standard_sub(message: types.Message, state: FSMContext):
     await state.update_data(chosen_sub="standard", price="4.000")
     await message.answer(
         "Siz **Standart** tarifini tanladingiz.\n\n"
-        "💳 Karta: `8600000011112222`\n"
+        "💳 Karta: `9987 1000 1543 7888`\n"
         "💰 Summa: 4.000 so'm\n\n"
         "📸 To'lov qiling va chekni (skrinshot) yuboring.",
         parse_mode="Markdown"
     )
     await state.set_state(PaymentState.waiting_for_screenshot)
 
-@dp.message(F.text.contains("Premium (8.000 so'm)"))
+@dp.message(F.text.contains("💎 Premium (8.000 so'm)"))
 async def process_premium_sub(message: types.Message, state: FSMContext):
     await state.update_data(chosen_sub="premium", price="8.000")
     await message.answer(
         "Siz **Premium** tarifini tanladingiz.\n\n"
-        "💳 Karta: `8600000011112222`\n"
+        "💳 Karta: `9987 1000 1543 7888`\n"
         "💰 Summa: 8.000 so'm\n\n"
         "📸 To'lov qiling va chekni (skrinshot) yuboring.",
         parse_mode="Markdown"
