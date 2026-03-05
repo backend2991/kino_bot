@@ -37,7 +37,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="C:\Users\Dell\Desktop\kino bot\venv"
+VIRTUAL_ENV="C:\Users\Dell\OneDrive\Desktop\kino bot\venv"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"
