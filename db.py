@@ -169,7 +169,7 @@ import aiosqlite
 from datetime import datetime, timedelta
 
 async def update_user_subscription(user_id, sub_type):
-    async with aiosqlite.connect("database.db") as db:
+    async with aiosqlite.connect("movies.db") as db:
         start_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
         # Masalan, 30 kunlik obuna qo'shish
