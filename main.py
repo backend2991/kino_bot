@@ -164,57 +164,44 @@ async def check_my_subscription(message: types.Message):
     await message.answer(text, parse_mode="HTML")
 
 @dp.callback_query(F.data.startswith('admin_'))
-async def admin_decision(callback: types.CallbackQuery, state: FSMContext):
+async def admin_decision(callback: types.CallbackQuery, state: FSMContext, bot: Bot):
     parts = callback.data.split('_')
     action, user_id = parts[1], int(parts[2])
     sub_type = parts[3] if len(parts) > 3 else "noma'lum"
+    
+    # Ma'lumotlarni yig'ish (insert_payment uchun)
     username = callback.from_user.username or "yo'q"
-    phone = "998901234567"
     full_name = callback.from_user.full_name
+    phone = "998901234567" # Bu yerda foydalanuvchi telefonini olish logikasini qo'shishingiz mumkin
+
     if action == 'app': 
-        await insert_payment(user_id, full_name, username, phone, sub_type, "tasdiqlandi")        
-        await bot.send_message(user_id, "✅ To'lovingiz tasdiqlandi! Bot ochildi.", reply_markup=users_menu())
+        # 1. To'lovlar tarixiga (payments) yozish
+        await insert_payment(user_id, full_name, username, phone, sub_type, "tasdiqlandi") 
+        
+        # 2. DIQQAT: Foydalanuvchining asosiy profilini (users jadvali) yangilash
+        # Bu funksiya db.py ichida bo'lishi va sub_type hamda end_date'ni yangilashi kerak
+        await update_user_subscription(user_id, sub_type) 
+        
+        # 3. Foydalanuvchini xabardor qilish
+        await bot.send_message(
+            user_id, 
+            f"✅ Tabriklaymiz! To'lovingiz tasdiqlandi.\n💎 Tarif: {sub_type.capitalize()}\n🚀 Endi barcha kinolarni ko'rishingiz mumkin!", 
+            reply_markup=users_menu()
+        )
+        
+        # 4. Admin xabarini yangilab qo'yish
         await callback.message.edit_caption(caption=callback.message.caption + "\n\n✅ TASDIQLANDI")
-        await callback.answer("Tasdiqlandi")
+        await callback.answer("Obuna faollashtirildi")
 
     elif action == 'rej': 
         await state.set_state(PaymentStateHistory.waiting_for_reject_reason)
-        await state.update_data(reject_user_id=user_id, reject_msg_id=callback.message.message_id, 
-                                rej_sub_type=sub_type, rej_photo=callback.message.photo[-1].file_id)
-        
-        await callback.message.answer("❌ Rad etish sababini yozing:")
+        await state.update_data(
+            reject_user_id=user_id, 
+            reject_msg_id=callback.message.message_id, 
+            rej_sub_type=sub_type
+        )
+        await callback.message.answer(f"❌ ID: {user_id} uchun rad etish sababini yozing:")
         await callback.answer()
-
-@dp.callback_query(F.data == "sub_check")
-async def callback_sub_check(call: types.CallbackQuery, bot: Bot):
-    user_id = call.from_user.id
-    full_name = call.from_user.full_name
-
-    if await check_user_sub(user_id, bot):
-        await call.message.delete()
-        
-        if user_id in ADMINS:
-            await call.message.answer(f"Xush kelibsiz Admin, {full_name}", reply_markup=admin_menu())
-            return
-
-        user_data = await find_user(user_id)
-        
-        if not user_data:
-            await insert_users(user_id=user_id, full_name=full_name, is_bann='false')
-            user_data = await find_user(user_id)
-
-        if user_data[4] == 'none': 
-            await call.message.answer(
-                f"Rahmat {full_name}! Kanallarga a'zo bo'ldingiz.\n"
-                "Endi botdan foydalanish uchun tariflardan birini tanlang:", 
-                reply_markup=subscription_reply_menu()
-            )
-        else:
-            await call.message.answer(f"Xush kelibsiz {full_name}", reply_markup=users_menu())
-            
-    else:
-        await call.answer("Siz hali barcha kanallarga a'zo bo'lmagansiz! ❌", show_alert=True)
-            
 @dp.message(F.text == "📜 To'lovlar tarixi")
 async def send_payments_report(message: types.Message):
     if message.from_user.id not in ADMINS:

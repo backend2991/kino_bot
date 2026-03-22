@@ -165,3 +165,19 @@ async def find_user(user_id):
             user = await curr.fetchone()
             return user
 
+import aiosqlite
+from datetime import datetime, timedelta
+
+async def update_user_subscription(user_id, sub_type):
+    async with aiosqlite.connect("database.db") as db:
+        start_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Masalan, 30 kunlik obuna qo'shish
+        end_date = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Sizning jadvalingizda: 4-indeks (sub_type), 5-indeks (start), 6-indeks (end)
+        await db.execute(
+            "UPDATE users SET sub_type=?, start_date=?, end_date=? WHERE user_id=?",
+            (sub_type, start_date, end_date, user_id)
+        )
+        await db.commit()
