@@ -110,7 +110,7 @@ async def get_payment_screenshot(message: types.Message, state: FSMContext):
     sub_type = data.get('chosen_sub')
     price = data.get('price')
     
-    admin_id = 858454334
+    admin_id = 8584543342
     
     await message.answer("✅ Rahmat! Chekingiz adminga yuborildi.")
     
