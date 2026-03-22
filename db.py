@@ -1,7 +1,6 @@
 import aiosqlite
-from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.types import ReplyKeyboardRemove
 from datetime import datetime, timedelta
+
 async def creat_table():
     conn = await aiosqlite.connect('movies.db')
     curr = await conn.cursor()
@@ -36,8 +35,8 @@ CREATE TABLE IF NOT EXISTS movies(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER,
                 full_name TEXT,
-                username TEXT,       -- Yangi ustun
-                phone_number TEXT,   -- Yangi ustun
+                username TEXT,
+                phone_number TEXT,
                 sub_type TEXT,
                 status TEXT,
                 reason TEXT,
@@ -48,54 +47,38 @@ CREATE TABLE IF NOT EXISTS movies(
     await conn.close()
 
 async def insert_movie(title, janr, country, language, about, adjactive, code, file_id):
-    conn = await aiosqlite.connect('movies.db')
-    curr = await conn.cursor()
-    await curr.execute("""
+    async with aiosqlite.connect('movies.db') as conn:
+        await conn.execute("""
 INSERT OR IGNORE INTO movies(title, janr, country, language, about, adjactive, code, file_id)
 VALUES(?, ?, ?, ?, ?, ?, ?, ?)
 """, (title, janr, country, language, about, adjactive, code, file_id))
-    await conn.commit()
-    await conn.close()
-    
+        await conn.commit()
 
 async def insert_users(user_id, full_name, is_bann):
-    conn = await aiosqlite.connect('movies.db')
-    curr = await conn.cursor()
-    await curr.execute("""
+    async with aiosqlite.connect('movies.db') as conn:
+        await conn.execute("""
                 INSERT OR IGNORE INTO users(user_id, full_name, is_bann)
                 VALUES(?, ?, ?)
             """, (user_id, full_name, is_bann))
-    await conn.commit()
-    await conn.close()
+        await conn.commit()
 
 async def get_movie_by_code(code):
-        conn = await aiosqlite.connect('movies.db')
-        curr = await conn.cursor() 
-        curr.row_factory = aiosqlite.Row  
-        cursor = await curr.execute("SELECT * FROM movies WHERE code = ?", (code,))
-        movie = await cursor.fetchone()
-        await conn.close()
-        return movie
-
-
- 
+    async with aiosqlite.connect('movies.db') as conn:
+        conn.row_factory = aiosqlite.Row  
+        async with conn.execute("SELECT * FROM movies WHERE code = ?", (code,)) as cursor:
+            movie = await cursor.fetchone()
+            return movie
 
 async def is_ban(user_id):
     async with aiosqlite.connect('movies.db') as conn:
-        curr = await conn.cursor() 
-        query = "UPDATE users SET is_bann='true' WHERE user_id=?"
-        await curr.execute(query, (user_id,))
+        await conn.execute("UPDATE users SET is_bann='true' WHERE user_id=?", (user_id,))
         await conn.commit()
        
 async def is_not_ban(user_id):
     async with aiosqlite.connect('movies.db') as conn:
-        await conn.execute("UPDATE users SET is_bann=false WHERE user_id=?", (user_id,))
+        await conn.execute("UPDATE users SET is_bann='false' WHERE user_id=?", (user_id,))
         await conn.commit()
 
-
-
-        
-        
 async def insert_payment(user_id, full_name, username, phone, sub_type, status, reason="-"):
     async with aiosqlite.connect('movies.db') as db:
         date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -104,8 +87,6 @@ async def insert_payment(user_id, full_name, username, phone, sub_type, status, 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (user_id, full_name, username, phone, sub_type, status, reason, date))
         await db.commit()
-
-
 
 async def check_user_ban(user_id):
     async with aiosqlite.connect('movies.db') as db:
@@ -116,43 +97,35 @@ async def check_user_ban(user_id):
             return True
         
 async def delete_movie_by_code(code: str):
-    """Kino kodiga qarab bazadan o'chirish"""
     async with aiosqlite.connect("movies.db") as db: 
         cursor = await db.execute("SELECT * FROM movies WHERE code = ?", (code,))
         movie = await cursor.fetchone()
-        
         if movie:
             await db.execute("DELETE FROM movies WHERE code = ?", (code,))
             await db.commit()
             return True  
         return False
-    
 
-
-
-
-
-async def update_user_subscription(user_id, sub_type, days):
-    async with aiosqlite.connect('movies.db') as conn:
-        start_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        end_date = (datetime.now() + timedelta(days=days)).strftime('%Y-%m-%d %H:%M:%S')
+async def update_user_subscription(user_id, sub_type):
+    async with aiosqlite.connect("movies.db") as db:
+        start_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        end_date = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
         
-        await conn.execute("""
+        await db.execute("""
             UPDATE users 
-            SET sub_type = ?, sub_start_date = ?, sub_end_date = ? 
-            WHERE user_id = ?
+            SET sub_type=?, sub_start_date=?, sub_end_date=? 
+            WHERE user_id=?
         """, (sub_type, start_date, end_date, user_id))
-        
-        await conn.commit()
+        await db.commit()
 
 async def check_subscription_expiry(user_id):
     async with aiosqlite.connect('movies.db') as conn:
         conn.row_factory = aiosqlite.Row
-        async with conn.execute("SELECT sub_date FROM users WHERE user_id = ?", (user_id,)) as cursor:
+        async with conn.execute("SELECT sub_end_date FROM users WHERE user_id = ?", (user_id,)) as cursor:
             row = await cursor.fetchone()
-            if row and row['sub_date']:
-                expiry_date = datetime.datetime.strptime(row['sub_date'], '%Y-%m-%d %H:%M:%S')
-                if datetime.datetime.now() > expiry_date:
+            if row and row['sub_end_date']:
+                expiry_date = datetime.strptime(row['sub_end_date'], '%Y-%m-%d %H:%M:%S')
+                if datetime.now() > expiry_date:
                     await conn.execute("UPDATE users SET sub_type = 'none' WHERE user_id = ?", (user_id,))
                     await conn.commit()
                     return False
@@ -164,20 +137,3 @@ async def find_user(user_id):
         async with conn.execute("SELECT * FROM users WHERE user_id=?", (user_id,)) as curr:
             user = await curr.fetchone()
             return user
-
-import aiosqlite
-from datetime import datetime, timedelta
-
-async def update_user_subscription(user_id, sub_type):
-    async with aiosqlite.connect("movies.db") as db:
-        start_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
-        # Masalan, 30 kunlik obuna qo'shish
-        end_date = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
-        
-        # Sizning jadvalingizda: 4-indeks (sub_type), 5-indeks (start), 6-indeks (end)
-        await db.execute(
-            "UPDATE users SET sub_type=?, start_date=?, end_date=? WHERE user_id=?",
-            (sub_type, start_date, end_date, user_id)
-        )
-        await db.commit()
