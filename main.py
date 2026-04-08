@@ -39,7 +39,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 TOKEN = "8222917234:AAGxqndfNnBAzh9lS8HrYeNuABz3YNINSJQ"
-ADMINS = [8584543342]
+ADMINS = [8584543342, 8252835848,]
 
 PROXY_URL = 'http://proxy.server:3128'
 session = AiohttpSession(proxy=PROXY_URL)
@@ -84,7 +84,8 @@ async def process_standard(message: types.Message, state: FSMContext):
     await state.update_data(chosen_sub="standard", price="4.000")
     await message.answer(
         "Siz **Standart** tarifini tanladingiz.\n\n"
-        "💳 Karta: `9987 1000 1543 7888`\n"
+        "💳 Karta: `5614 6889 5214 8194`\n"
+        "👤 Mirdjalilova.D"
         "💰 Summa: 4.000 so'm\n\n"
         "📸 To'lov qiling va chekni (skrinshot) yuboring.",
         parse_mode="Markdown"
