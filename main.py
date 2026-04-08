@@ -39,7 +39,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 TOKEN = "8222917234:AAGxqndfNnBAzh9lS8HrYeNuABz3YNINSJQ"
-ADMINS = [8584543342, 8252835848,]
+ADMINS = [8584543342, 8252835848]
 
 PROXY_URL = 'http://proxy.server:3128'
 session = AiohttpSession(proxy=PROXY_URL)
@@ -85,7 +85,7 @@ async def process_standard(message: types.Message, state: FSMContext):
     await message.answer(
         "Siz **Standart** tarifini tanladingiz.\n\n"
         "💳 Karta: `5614 6889 5214 8194`\n"
-        "👤 Mirdjalilova.D"
+        "👤 Mirdjalilova.D\n"
         "💰 Summa: 4.000 so'm\n\n"
         "📸 To'lov qiling va chekni (skrinshot) yuboring.",
         parse_mode="Markdown"
@@ -113,7 +113,7 @@ async def get_payment_screenshot(message: types.Message, state: FSMContext):
     
     admin_id = 8584543342
     
-    await message.answer("✅ Rahmat! Chekingiz adminga yuborildi.")
+    await message.answer("✅ Rahmat! Chekingiz adminga yuborildi. Tasdiqlanishini kuting.")
     
     await bot.send_photo(
         chat_id=admin_id, 
@@ -163,30 +163,26 @@ async def check_my_subscription(message: types.Message):
         f"🔄 <b>Holati:</b> {status}\n\n"
         f"🕒 <b>Qolgan vaqt:</b> {time_left}"
     )
-
     await message.answer(text, parse_mode="HTML")
 
 @dp.callback_query(F.data.startswith('admin_'))
 async def admin_decision(callback: types.CallbackQuery, state: FSMContext):
-    bot = callback.bot
     parts = callback.data.split('_')
-    action, user_id = parts[1], int(parts[2])
+    action = parts[1]
+    user_id = int(parts[2])
     sub_type = parts[3] if len(parts) > 3 else "noma'lum"
     
-    username = callback.from_user.username or "yo'q"
-    full_name = callback.from_user.full_name
-    phone = "Noma'lum"
+    full_name = callback.message.caption.split('\n')[1].split(': ')[1] if callback.message.caption else "Noma'lum"
 
     if action == 'app': 
-        await insert_payment(user_id, full_name, username, phone, sub_type, "tasdiqlandi") 
+        await insert_payment(user_id, full_name, "user", "Noma'lum", sub_type, "tasdiqlandi") 
         await update_user_subscription(user_id, sub_type) 
         
-        await bot.send_message(
+        await callback.bot.send_message(
             user_id, 
             f"✅ Tabriklaymiz! To'lovingiz tasdiqlandi.\n💎 Tarif: {sub_type.capitalize()}\n🚀 Endi barcha kinolarni ko'rishingiz mumkin!", 
             reply_markup=users_menu()
         )
-        
         await callback.message.edit_caption(caption=callback.message.caption + "\n\n✅ TASDIQLANDI")
         await callback.answer("Obuna faollashtirildi")
 
@@ -194,27 +190,29 @@ async def admin_decision(callback: types.CallbackQuery, state: FSMContext):
         await state.set_state(PaymentStateHistory.waiting_for_reject_reason)
         await state.update_data(
             reject_user_id=user_id, 
-            reject_msg_id=callback.message.message_id, 
-            rej_sub_type=sub_type
+            reject_msg_id=callback.message.message_id
         )
         await callback.message.answer(f"❌ ID: {user_id} uchun rad etish sababini yozing:")
         await callback.answer()
 
+@dp.message(PaymentStateHistory.waiting_for_reject_reason)
+async def process_reject_reason_msg(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    user_id = data.get('reject_user_id')
+    reason = message.text
+
+    await bot.send_message(user_id, f"❌ Sizning to'lovingiz rad etildi.\n⚠️ Sabab: {reason}")
+    await message.answer(f"✅ Foydalanuvchiga (ID: {user_id}) rad javobi yuborildi.")
+    await state.clear()
+
 @dp.message(F.text == "📜 To'lovlar tarixi")
 async def send_payments_report(message: types.Message):
-    if message.from_user.id not in ADMINS:
-        return
-
+    if message.from_user.id not in ADMINS: return
     status_msg = await message.answer("⏳ To'lovlar tarixi tayyorlanmoqda...")
-    
     try:
         pdf_path = await generate_payments_pdf()
-        if pdf_path:
-            document = FSInputFile(pdf_path)
-            await message.answer_document(
-                document, 
-                caption=f"📊 To'lovlar tarixi (Oxirgi yangilanish: {datetime.now().strftime('%d.%m.%Y')})"
-            )
+        if pdf_path and os.path.exists(pdf_path):
+            await message.answer_document(FSInputFile(pdf_path), caption=f"📊 To'lovlar tarixi")
             await status_msg.delete()
             os.remove(pdf_path) 
         else:
@@ -225,81 +223,64 @@ async def send_payments_report(message: types.Message):
 @dp.message(F.text == '➕ Kino qo\'shish')
 async def creat_films_handler(message: types.Message, state: FSMContext):
     if message.from_user.id in ADMINS:
-        await message.answer("📰 Kino sarlovhasini kiting:")
+        await message.answer("📰 Kino sarlovhasini kiriting:")
         await state.set_state(admin_data.title)
     else:
         await message.answer("❌ Bu amal faqat adminlar uchun")
     
 @dp.message(admin_data.title)
 async def title_films_handler(message: types.Message, state: FSMContext):
-    if message.from_user.id in ADMINS:
-        await state.update_data(title = message.text)
-        await message.answer("🎥 Kino janrini kiriting:", reply_markup=janr_menu)
-        await state.set_state(admin_data.janr)
+    await state.update_data(title = message.text)
+    await message.answer("🎥 Kino janrini kiriting:", reply_markup=janr_menu)
+    await state.set_state(admin_data.janr)
 
 @dp.message(admin_data.janr)
 async def janr_films_handler(message: types.Message, state: FSMContext):
-    if message.from_user.id in ADMINS:
-        await state.update_data(janr = message.text)
-        await message.answer("🌍 Ishlab chiqargan davlat nomi:", reply_markup=ReplyKeyboardRemove())
-        await state.set_state(admin_data.country)
+    await state.update_data(janr = message.text)
+    await message.answer("🌍 Ishlab chiqargan davlat nomi:", reply_markup=ReplyKeyboardRemove())
+    await state.set_state(admin_data.country)
 
 @dp.message(admin_data.country)
 async def country_handler(message: types.Message, state: FSMContext):
-    if message.from_user.id in ADMINS:
-        await state.update_data(country = message.text)
-        await message.answer("🌐 Tarjima tili:", reply_markup=language_menu)
-        await state.set_state(admin_data.language)
+    await state.update_data(country = message.text)
+    await message.answer("🌐 Tarjima tili:", reply_markup=language_menu)
+    await state.set_state(admin_data.language)
 
 @dp.message(admin_data.language)
 async def language_handler(message: types.Message, state: FSMContext):
-    if message.from_user.id in ADMINS:
-        await state.update_data(language = message.text)
-        await message.answer("💬 Kino haqida qisqacha:", reply_markup=ReplyKeyboardRemove())
-        await state.set_state(admin_data.about)
+    await state.update_data(language = message.text)
+    await message.answer("💬 Kino haqida qisqacha:")
+    await state.set_state(admin_data.about)
 
 @dp.message(admin_data.about)
 async def about_handler(message: types.Message, state: FSMContext):
-    if message.from_user.id in ADMINS:
-        await state.update_data(about = message.text)
-        await message.answer("🎦 Kino sifati: ", reply_markup=kino_sifati_menu)
-        await state.set_state(admin_data.adjactive)
+    await state.update_data(about = message.text)
+    await message.answer("🎦 Kino sifati: ", reply_markup=kino_sifati_menu)
+    await state.set_state(admin_data.adjactive)
 
 @dp.message(admin_data.adjactive)
 async def adjactive_handler(message: types.Message, state: FSMContext):
-    if message.from_user.id in ADMINS:
-        await state.update_data(adjactive = message.text)
-        await message.answer("🎬 Kino uchun 4 xonali kod yarating:", reply_markup=ReplyKeyboardRemove())
-        await state.set_state(admin_data.code)
+    await state.update_data(adjactive = message.text)
+    await message.answer("🎬 Kino uchun 4 xonali kod yarating:")
+    await state.set_state(admin_data.code)
 
 @dp.message(admin_data.code)
 async def code_handler(message: types.Message, state: FSMContext):
-    if message.from_user.id in ADMINS:
-        await state.update_data(code = message.text)
-        await message.answer("🎥 Kino videosini yuboring: ")
-        await state.set_state(admin_data.file_id)
+    await state.update_data(code = message.text)
+    await message.answer("🎥 Kino videosini yuboring: ")
+    await state.set_state(admin_data.file_id)
     
 @dp.message(admin_data.file_id, F.video)
 async def file_id_handler(message: types.Message, state: FSMContext):
-    if message.from_user.id in ADMINS:
-        file_id = message.video.file_id
-        await state.update_data(file_id = file_id)
-        data = await state.get_data() 
-       
-        await insert_movie(
-            title=data.get("title"),
-            janr=data.get("janr"),
-            country=data.get("country"),
-            language=data.get("language"),
-            about=data.get("about"),
-            adjactive=data.get("adjactive"),
-            code=data.get("code"),
-            file_id=file_id
-        )
-        text = f"🎥 Kino kodi: {data.get('code')}\n🌍 Davlat: {data.get('country')}\n📄 Janr: {data.get('janr')}\n🎬 Sifat: {data.get('adjactive')}"
-        await message.answer("✅ Kino muvaffaqiyatli qo'shildi")
-        await message.answer_video(video=file_id, caption=text)
-        await state.clear()
+    file_id = message.video.file_id
+    data = await state.get_data() 
+    await insert_movie(
+        title=data.get("title"), janr=data.get("janr"), country=data.get("country"),
+        language=data.get("language"), about=data.get("about"),
+        adjactive=data.get("adjactive"), code=data.get("code"), file_id=file_id
+    )
+    await message.answer("✅ Kino muvaffaqiyatli qo'shildi")
+    await state.clear()
 
 @dp.message(F.text == '🔎 Kino qidirish')
 async def find_movie_handler(message: types.Message, state: FSMContext):
@@ -312,9 +293,9 @@ async def find_movie_with_code(message: types.Message, state: FSMContext):
     if data:
         text = f"🎥 Kodi: {data['code']}\n🌍 Davlat: {data['country']}\n📄 Janr: {data['janr']}\n🌐 Til: {data['language']}\n✏ Haqida: {data['about']}\n🎬 Sifat: {data['adjactive']}"
         await message.answer_video(video=data['file_id'], caption=text)
-        await state.clear() 
     else:
         await message.answer("❌ Bunday kodli kino topilmadi.")
+    await state.clear()
 
 @dp.message(F.text == '🎥 Kinolarni ko\'rish')
 async def admin_view_movies(message: types.Message, state: FSMContext):
@@ -324,14 +305,13 @@ async def admin_view_movies(message: types.Message, state: FSMContext):
 
 @dp.message(find_movie_admin.code_find_admin)
 async def admin_movie_search_result(message: types.Message, state: FSMContext):
-    if message.from_user.id in ADMINS:
-        data = await get_movie_by_code(message.text)
-        if data:
-            text = f"🎥 Kodi: {data['code']}\n🌍 Davlat: {data['country']}\n📄 Janr: {data['janr']}\n🎬 Sifat: {data['adjactive']}"
-            await message.answer_video(video=data['file_id'], caption=text)
-            await state.clear()
-        else:
-            await message.answer("❌ Bunday kino topilmadi")
+    data = await get_movie_by_code(message.text)
+    if data:
+        text = f"🎥 Kodi: {data['code']}\n🌍 Davlat: {data['country']}\n📄 Janr: {data['janr']}\n🎬 Sifat: {data['adjactive']}"
+        await message.answer_video(video=data['file_id'], caption=text)
+    else:
+        await message.answer("❌ Bunday kino topilmadi")
+    await state.clear()
 
 @dp.message(F.text == '🚫 Foydalanuvchilarni bloklash')
 async def start_block_handler(message: types.Message, state: FSMContext):
@@ -341,10 +321,9 @@ async def start_block_handler(message: types.Message, state: FSMContext):
 
 @dp.message(block_user.blcok_user_)
 async def get_user_id_handler(message: types.Message, state: FSMContext):
-    if message.from_user.id in ADMINS:
-        await state.update_data(user_id=message.text) 
-        await state.set_state(block_user.confirm_user)
-        await message.answer(f"💬 ID: {message.text}\nBloklashga rozimisiz?", reply_markup=confirm_yes_no())
+    await state.update_data(user_id=message.text) 
+    await state.set_state(block_user.confirm_user)
+    await message.answer(f"💬 ID: {message.text}\nBloklashga rozimisiz?", reply_markup=confirm_yes_no())
 
 @dp.callback_query(block_user.confirm_user)
 async def confirm_block_handler(call: types.CallbackQuery, state: FSMContext):
@@ -369,10 +348,9 @@ async def start_unblock_handler(message: types.Message, state: FSMContext):
 
 @dp.message(unblock_user.blcok_user_unblock)
 async def get_unblock_id(message: types.Message, state: FSMContext):
-    if message.from_user.id in ADMINS:
-        await state.update_data(user_id=message.text) 
-        await state.set_state(unblock_user.confirm_user_unblock)
-        await message.answer(f"💬 ID: {message.text}\nBlokdan chiqarilsinmi?", reply_markup=confirm_yes_no())
+    await state.update_data(user_id=message.text) 
+    await state.set_state(unblock_user.confirm_user_unblock)
+    await message.answer(f"💬 ID: {message.text}\nBlokdan chiqarilsinmi?", reply_markup=confirm_yes_no())
 
 @dp.callback_query(unblock_user.confirm_user_unblock)
 async def confirm_unblock(call: types.CallbackQuery, state: FSMContext):
@@ -425,10 +403,14 @@ async def process_del_code(message: types.Message, state: FSMContext):
         await state.clear()
 
 @dp.callback_query(F.data.startswith("conf_del:"))
+@dp.callback_query(F.data == "cancel_del")
 async def finalize_delete(call: types.CallbackQuery, state: FSMContext):
-    code = call.data.split(":")[1]
-    if await delete_movie_by_code(code):
+    if call.data.startswith("conf_del:"):
+        code = call.data.split(":")[1]
+        await delete_movie_by_code(code)
         await call.message.edit_text(f"✅ Kod {code} o'chirildi.")
+    else:
+        await call.message.edit_text("❌ Bekor qilindi.")
     await state.clear()
     await call.answer()
 
